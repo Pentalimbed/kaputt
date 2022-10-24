@@ -35,3 +35,6 @@ struct StrEq
 template <typename T>
 using StrMap = robin_hood::unordered_map<std::string, T, StrHash, StrEq>;
 using StrSet = robin_hood::unordered_set<std::string, StrHash, StrEq>;
+
+std::string joinTags(const StrSet& tags, bool sorted = true);
+StrSet      splitTags(const std::string& str);

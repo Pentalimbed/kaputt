@@ -65,7 +65,6 @@ public:
     void            saveCustomFile(fs::path dir);
     void            clearCustomTags();
 
-private:
     StrMap<AnimEntry> anim_dict;
 };
 } // namespace kaputt

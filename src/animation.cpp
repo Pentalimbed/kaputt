@@ -11,19 +11,6 @@ StrSet tomlArray2Tags(const toml::array* arr)
     return tags;
 }
 
-/*UNUSED*/
-StrSet splitTags(const std::string& str)
-{
-    std::istringstream iss(str);
-    std::string        temp_tag;
-    StrSet             tags;
-    while (std::getline(iss, temp_tag, ' '))
-        tags.insert(temp_tag);
-    return tags;
-}
-
-
-
 namespace kaputt
 {
 void AnimEntry::parse_toml_array(const toml::array* arr, bool is_custom)

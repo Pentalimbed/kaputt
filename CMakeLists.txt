@@ -24,13 +24,17 @@ set(headers
         src/utils.h
         src/cathub.h
         src/animation.h
-        src/menu.h)
+        src/menu.h
+        
+        src/extern/imgui_stdlib.h)
 
 set(sources
         src/utils.cpp
         src/main.cpp
         src/animation.cpp
         src/menu.cpp
+
+        src/extern/imgui_stdlib.cpp
 
         ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 

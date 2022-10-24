@@ -22,18 +22,7 @@ StrSet splitTags(const std::string& str)
     return tags;
 }
 
-std::string joinTags(const StrSet& tags)
-{
-    std::string result = "";
-    uint16_t    count  = 0;
-    for (auto it = tags.begin(); it != tags.end(); ++it, ++count)
-    {
-        result += *it;
-        if (count != tags.size() - 1)
-            result += ' ';
-    }
-    return result;
-}
+
 
 namespace kaputt
 {

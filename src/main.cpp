@@ -72,7 +72,6 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
     auto  version = plugin->GetVersion();
     logger::info("{} {} is loading...", plugin->GetName(), version);
 
-
     SKSE::Init(skse);
     SKSE::AllocTrampoline(14 * 2);
 

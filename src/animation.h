@@ -5,8 +5,6 @@
 #include <filesystem>
 #include <optional>
 
-#include <toml++/toml.h>
-
 namespace kaputt
 {
 namespace fs = std::filesystem;

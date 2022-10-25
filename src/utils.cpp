@@ -37,3 +37,15 @@ StrSet splitTags(const std::string& str)
         tags.insert(temp_tag);
     return tags;
 }
+
+bool isSameStructure(const toml::table& a, const toml::table& b)
+{
+    for (auto& [k, v] : a)
+    {
+        if (!b.contains(k))
+            return false;
+        if (b.at(k).type() != v.type())
+            return false;
+    }
+    return true;
+}

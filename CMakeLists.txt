@@ -27,6 +27,7 @@ set(headers
         src/cathub.h
         src/animation.h
         src/menu.h
+        src/rules.h
         
         src/extern/imgui_stdlib.h)
 
@@ -37,6 +38,7 @@ src/config.cpp
         src/main.cpp
         src/animation.cpp
         src/menu.cpp
+        src/rules.cpp
 
         src/extern/imgui_stdlib.cpp
 

@@ -1,8 +1,9 @@
 #pragma once
 
 #include <robin_hood.h>
+#include <toml++/toml.h>
 
-struct StrHash
+struct StrHash : robin_hood::hash<std::string>
 {
     using is_transparent = void;
 
@@ -38,3 +39,13 @@ using StrSet = robin_hood::unordered_set<std::string, StrHash, StrEq>;
 
 std::string joinTags(const StrSet& tags, bool sorted = true);
 StrSet      splitTags(const std::string& str);
+
+inline void mergeStrSet(StrSet& to, const StrSet& from)
+{
+    for (auto& str : from)
+        to.emplace(str);
+}
+
+// only for the simple flat structure used in the code
+// don't use it for nested tables etc.
+bool isSameStructure(const toml::table& a, const toml::table& b);

@@ -74,7 +74,7 @@ void drawAnimationMenu()
     if (ImGui::BeginTable("Animation Entries", 2, table_flags, {0.f, -FLT_MIN}))
     {
         ImGui::TableSetupColumn("Editor ID", ImGuiTableColumnFlags_WidthStretch, 0.4);
-        ImGui::TableSetupColumn("Tags", 0.6);
+        ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.6);
         ImGui::TableHeadersRow();
         ImGui::TableNextRow();
 

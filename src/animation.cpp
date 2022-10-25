@@ -15,13 +15,12 @@ StrSet tomlArray2Tags(const toml::array* arr)
 
 namespace kaputt
 {
-void AnimEntry::parse_toml_array(const toml::array* arr, bool is_custom)
+void AnimEntry::parse_toml_array(const toml::array& arr, bool is_custom)
 {
     if (is_custom)
-        custom_tags.emplace();
-    for (const auto& tag : *arr)
-        if (tag.is_string())
-            (is_custom ? custom_tags.value() : tags).insert(tag.ref<std::string>());
+        custom_tags.emplace(tomlArray2StrSet(arr));
+    else
+        tags = tomlArray2StrSet(arr);
 }
 
 void AnimEntry::play(RE::Actor* attacker, RE::Actor* victim)
@@ -78,21 +77,14 @@ void AnimEntryManager::loadSingleEntryFile(fs::path dir)
                 continue;
             }
 
-            try
-            {
-                AnimEntry entry{
-                    .editor_id = std::string(edid),
-                    .idle_form = form,
-                };
-                entry.parse_toml_array(v.as_array());
-                anim_dict[std::string(edid)] = std::move(entry);
-                logger::info("Added entry {}.", edid);
-                ++anim_count;
-            }
-            catch (std::runtime_error e)
-            {
-                logger::warn("Failed to parse entry {}. Error: {}", edid, e.what());
-            }
+            AnimEntry entry{
+                .editor_id = std::string(edid),
+                .idle_form = form,
+            };
+            entry.parse_toml_array(*v.as_array());
+            anim_dict[std::string(edid)] = std::move(entry);
+            logger::info("Added entry {}.", edid);
+            ++anim_count;
         }
     logger::info("Parsed file {}. {} animations were registered.", dir.string(), anim_count);
 }
@@ -132,15 +124,8 @@ void AnimEntryManager::loadCustomFile(fs::path dir)
                 continue;
             }
 
-            try
-            {
-                anim_dict[std::string(edid)].parse_toml_array(v.as_array(), true);
-                logger::info("Added customization entry {}", edid);
-            }
-            catch (std::runtime_error e)
-            {
-                logger::warn("Failed to parse customization entry {}. Error: {}", edid, e.what());
-            }
+            anim_dict[std::string(edid)].parse_toml_array(*v.as_array(), true);
+            logger::info("Added customization entry {}", edid);
         }
     logger::info("Parsed customization file {}.", dir.string());
 }
@@ -159,11 +144,7 @@ void AnimEntryManager::saveCustomFile(fs::path dir)
     toml::table tbl = {};
     for (const auto& [edid, anim] : anim_dict)
         if (anim.custom_tags.has_value())
-        {
-            auto arr = tbl.emplace<toml::array>(edid).first->second.as_array();
-            for (const auto& tag : anim.custom_tags.value())
-                arr->push_back(tag);
-        }
+            tbl.emplace<toml::array>(edid, strSet2TomlArray(anim.custom_tags.value()));
     f << tbl;
     logger::info("Saved customization file {}.", dir.string());
 }

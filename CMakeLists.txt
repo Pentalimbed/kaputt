@@ -28,6 +28,7 @@ set(headers
         src/animation.h
         src/menu.h
         src/rules.h
+        src/tagger.h
         
         src/extern/imgui_stdlib.h)
 
@@ -39,6 +40,7 @@ src/config.cpp
         src/animation.cpp
         src/menu.cpp
         src/rules.cpp
+        src/tagger.cpp
 
         src/extern/imgui_stdlib.cpp
 

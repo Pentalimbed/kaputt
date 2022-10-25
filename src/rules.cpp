@@ -4,6 +4,18 @@
 
 namespace kaputt
 {
+std::unique_ptr<Rule> Rule::getRule(std::string_view rule_name)
+{
+#define REGRULE(ChildRule)                  \
+    if (rule_name == ChildRule().getName()) \
+        return std::make_unique<ChildRule>();
+
+    REGRULE(BleedoutRule)
+    REGRULE(RagdollRule)
+    REGRULE(ProtectedRule)
+    REGRULE(EssentialRule)
+    REGRULE(AngleRule)
+}
 
 // Check
 bool AngleRule::operator()(RE::Actor* attacker, RE::Actor* victim) const

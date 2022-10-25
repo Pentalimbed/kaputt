@@ -47,7 +47,7 @@ struct AnimEntry
     std::optional<StrSet> custom_tags = std::nullopt;
     inline StrSet&        getTags() { return custom_tags.has_value() ? custom_tags.value() : tags; }
 
-    void parse_toml_array(const toml::array* arr, bool is_custom = false) throw(std::runtime_error);
+    void parse_toml_array(const toml::array& arr, bool is_custom = false);
 
     void play(RE::Actor* attacker, RE::Actor* victim);
     void testPlay(float max_range = 25); // play with player and a near target
@@ -65,7 +65,7 @@ public:
     void            loadAllEntryFiles();
     void            loadSingleEntryFile(fs::path dir);
     inline fs::path getDefaultCustomFilePath() { return fs::path(plugin_dir) / fs::path(config_dir) / fs::path(anim_dir) / fs::path(anim_custom_dir) / fs::path(anim_custom_def); }
-    void            loadCustomFile(fs::path dir);
+    void            loadCustomFile(fs::path dir); // Could merge with loadSingleEntryFile
     void            saveCustomFile(fs::path dir);
     void            clearCustomTags();
 

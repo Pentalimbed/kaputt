@@ -15,13 +15,11 @@
 
 namespace kaputt
 {
-class Rule
+struct Rule
 {
-protected:
     toml::table         params;
     virtual toml::table getDefaultParams() = 0;
 
-public:
     inline void init() { params = getDefaultParams(); }
     inline void init(const toml::table& p) { params = p; }
     inline bool checkParamsValidity(const toml::table& p) { return isSameStructure(p, getDefaultParams()); }
@@ -31,6 +29,8 @@ public:
     virtual constexpr std::string_view getHint() const = 0;
 
     virtual bool operator()(RE::Actor* attacker, RE::Actor* victim) const = 0; // actual rule checking part
+
+    static std::unique_ptr<Rule> getRule(std::string_view rule_name);
 };
 
 struct SingleActorRule : public Rule
@@ -57,7 +57,7 @@ struct BleedoutRule : public SingleActorRule
 
     virtual constexpr std::string_view getName() const { return "Bleedout"; }
     virtual constexpr std::string_view getHint() const { return "True if actor is bleeding out."; }
-    virtual inline bool                operator()(RE::Actor* actor) { return actor->GetActorRuntimeData().boolFlags.all(RE::Actor::BOOL_FLAGS::kInBleedoutAnimation); }
+    virtual inline bool                operator()(RE::Actor* actor) const { return actor->GetActorRuntimeData().boolFlags.all(RE::Actor::BOOL_FLAGS::kInBleedoutAnimation); }
 };
 
 struct RagdollRule : public SingleActorRule
@@ -67,7 +67,7 @@ struct RagdollRule : public SingleActorRule
 
     virtual constexpr std::string_view getName() const { return "Ragdoll"; }
     virtual constexpr std::string_view getHint() const { return "True if actor is ragdolling."; }
-    virtual inline bool                operator()(RE::Actor* actor)
+    virtual inline bool                operator()(RE::Actor* actor) const
     {
         return actor->IsInRagdollState(); // Alternate method: check knockState
     }
@@ -80,7 +80,7 @@ struct ProtectedRule : public SingleActorRule
 
     virtual constexpr std::string_view getName() const { return "Protected"; }
     virtual constexpr std::string_view getHint() const { return "True if actor is protected."; }
-    virtual inline bool                operator()(RE::Actor* actor) { return actor->GetActorRuntimeData().boolFlags.all(RE::Actor::BOOL_FLAGS::kProtected); }
+    virtual inline bool                operator()(RE::Actor* actor) const { return actor->GetActorRuntimeData().boolFlags.all(RE::Actor::BOOL_FLAGS::kProtected); }
 };
 
 struct EssentialRule : public SingleActorRule
@@ -90,12 +90,12 @@ struct EssentialRule : public SingleActorRule
 
     virtual constexpr std::string_view getName() const { return "Essential"; }
     virtual constexpr std::string_view getHint() const { return "True if actor is essential."; }
-    virtual inline bool                operator()(RE::Actor* actor) { return actor->GetActorRuntimeData().boolFlags.all(RE::Actor::BOOL_FLAGS::kEssential); }
+    virtual inline bool                operator()(RE::Actor* actor) const { return actor->GetActorRuntimeData().boolFlags.all(RE::Actor::BOOL_FLAGS::kEssential); }
 };
 
 struct AngleRule : public Rule
 {
-    virtual inline toml::table getOtherDefaultParams() { return toml::table{{"angle_min", -45.f}, {"angle_max", 45.f}}; }
+    virtual inline toml::table getDefaultParams() { return toml::table{{"angle_min", -45.f}, {"angle_max", 45.f}}; }
     virtual void               drawParams();
 
     virtual constexpr std::string_view getName() const { return "Attacker Angle"; }

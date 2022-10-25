@@ -21,6 +21,7 @@ configure_file(
         @ONLY)
 
 set(headers
+        src/re.h
         src/utils.h
         src/cathub.h
         src/animation.h

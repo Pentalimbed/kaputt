@@ -16,22 +16,36 @@ void               setStatusMessage(std::string_view msg)
 
 void drawAnimationMenu()
 {
-    static std::string filter_text = {};
-    int                filter_mode = 0; // 0 None 1 ID 2 Tags
+    static std::string         filter_text = {};
+    static ImGuiTableSortSpecs sort_specs  = {};
+    static int                 filter_mode = 0; // 0 None 1 ID 2 Tags
     // static std::string selected_edid = ""; // Selected anim entry in the list
 
     auto anim_manager = AnimEntryManager::getSingleton();
 
     // file operation
-    if (ImGui::BeginTable("filetab", 2))
+    if (ImGui::BeginTable("filetab", 3))
     {
         ImGui::TableNextColumn();
         if (ImGui::Button("Save Custom Tags", {-FLT_MIN, 0.f}))
+        {
             anim_manager->saveCustomFile(anim_manager->getDefaultCustomFilePath());
-
+            setStatusMessage("Custom tags saved!");
+        }
         ImGui::TableNextColumn();
         if (ImGui::Button("Reload Custom Tags", {-FLT_MIN, 0.f}))
+        {
             anim_manager->loadCustomFile(anim_manager->getDefaultCustomFilePath());
+            setStatusMessage("Custom tags reloaded!");
+        }
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Clear Custom Tags", {-FLT_MIN, 0.f}))
+        {
+            anim_manager->clearCustomTags();
+            setStatusMessage("Custom tags cleared!");
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Remember to save to file.");
 
         ImGui::EndTable();
     }
@@ -49,50 +63,75 @@ void drawAnimationMenu()
         ImGui::TableNextColumn();
         ImGui::RadioButton("Tag", &filter_mode, 2);
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Seperate each tag with SPACE.");
+            ImGui::SetTooltip("Currently only ");
 
         ImGui::EndTable();
     }
 
     // list of anims
-    constexpr auto table_flags = ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV | ImGuiTableFlags_ScrollY;
+    constexpr auto table_flags =
+        ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV | ImGuiTableFlags_ScrollY;
     if (ImGui::BeginTable("Animation Entries", 2, table_flags, {0.f, -FLT_MIN}))
     {
         ImGui::TableSetupColumn("Editor ID", ImGuiTableColumnFlags_WidthStretch, 0.4);
-        ImGui::TableSetupColumn("Tags", 0, 0.6);
+        ImGui::TableSetupColumn("Tags", 0.6);
         ImGui::TableHeadersRow();
         ImGui::TableNextRow();
 
+        // filter
+        std::vector<AnimEntry*> anim_list;
         for (auto& [edid, anim] : anim_manager->anim_dict)
         {
-            ImGui::PushID(edid.c_str());
-
-            ImGui::TableNextColumn();
-            ImGui::AlignTextToFramePadding();
-            if (ImGui::Selectable(edid.c_str(), false))
-                ; // TODO
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Click to perform with the nearest NPC.");
-
-            ImGui::TableNextColumn();
-            auto tags_str = joinTags(anim.getTags());
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            if (ImGui::InputText("##", &tags_str, ImGuiInputTextFlags_EnterReturnsTrue))
-            {
-                if (tags_str.empty())
-                    anim.custom_tags.reset();
-                else
-                    anim.custom_tags = splitTags(tags_str);
-            }
-
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Press Enter to apply tag editing.\n"
-                                  "The tags will be sorted.\n"
-                                  "Leave empty and press Enter to set to default.\n"
-                                  "(Remember to save to the file afterwards.)");
-
-            ImGui::PopID();
+            if ((filter_mode == 1) && !edid.contains(filter_text)) continue;
+            if ((filter_mode == 2) &&
+                std::ranges::any_of(splitTags(filter_text), [&](const std::string& tag) { return !anim.getTags().contains(tag); }))
+                continue;
+            anim_list.push_back(&anim);
         }
+        // sort
+        // std::ranges::sort(anim_list, [](AnimEntry* a, AnimEntry* b) { return strcmpi(a->editor_id.c_str(), b->editor_id.c_str()); });
+
+        ImGuiListClipper clipper;
+        clipper.Begin(anim_list.size());
+        while (clipper.Step())
+            for (int row_n = clipper.DisplayStart; row_n < clipper.DisplayEnd; row_n++)
+            {
+                auto& anim = *anim_list[row_n];
+                auto& edid = anim.editor_id;
+
+                ImGui::PushID(edid.c_str());
+
+                ImGui::TableNextColumn();
+                ImGui::AlignTextToFramePadding();
+                if (anim.custom_tags.has_value())
+                    ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f}); // Indicate custom tags
+                if (ImGui::Selectable(edid.c_str(), false))
+                    ;
+                if (anim.custom_tags.has_value())
+                    ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Click to perform with the nearest NPC.\n"
+                                      "The conditions are not checked. So be wary.");
+
+                ImGui::TableNextColumn();
+                auto tags_str = joinTags(anim.getTags());
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                if (ImGui::InputText("##", &tags_str, ImGuiInputTextFlags_EnterReturnsTrue))
+                {
+                    if (tags_str.empty())
+                        anim.custom_tags.reset();
+                    else
+                        anim.custom_tags = splitTags(tags_str);
+                }
+
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Press Enter to apply tag editing.\n"
+                                      "The tags will be sorted.\n"
+                                      "Leave empty and press Enter to set to default.\n"
+                                      "(Remember to save to file afterwards.)");
+
+                ImGui::PopID();
+            }
 
         ImGui::EndTable();
     }

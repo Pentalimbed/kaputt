@@ -22,6 +22,12 @@ void AnimEntry::parse_toml_array(const toml::array* arr, bool is_custom)
             (is_custom ? custom_tags.value() : tags).insert(tag.ref<std::string>());
 }
 
+void AnimEntry::play(RE::Actor* attacker, RE::Actor* victim)
+{
+    logger::debug("Now playing {}", editor_id);
+    // attacker->GetActorRuntimeData().currentProcess->playPairedIdle(attacker->currentProcess, attacker, RE::DEFAULT_OBJECT::kActionIdle, idle_form, true, false, victim);
+}
+
 void AnimEntryManager::loadSingleEntryFile(fs::path dir)
 {
     auto result = toml::parse_file(dir.c_str());
@@ -83,6 +89,8 @@ void AnimEntryManager::loadAllEntryFiles()
 
 void AnimEntryManager::loadCustomFile(fs::path dir)
 {
+    clearCustomTags();
+
     auto result = toml::parse_file(dir.c_str());
     if (!result)
     {

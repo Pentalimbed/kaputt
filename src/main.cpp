@@ -4,6 +4,8 @@
 #include "menu.h"
 #include "cathub.h"
 
+// #define DBGMSG
+
 namespace kaputt
 {
 bool installLog()
@@ -17,7 +19,7 @@ bool installLog()
 
     auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 
-#ifdef NDEBUG
+#ifndef DBGMSG
     log->set_level(spdlog::level::info);
     log->flush_on(spdlog::level::info);
 #else
@@ -53,8 +55,10 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
     {
         case SKSE::MessagingInterface::kDataLoaded:
             logger::info("Game: data loaded");
-            AnimEntryManager::getSingleton()->loadAllEntryFiles(); // Load animations
-            integrateCatHub();                                     // Cathub
+
+            AnimEntryManager::getSingleton()->initialize();
+
+            integrateCatHub(); // Cathub
             break;
         default:
             break;

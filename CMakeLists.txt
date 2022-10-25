@@ -21,6 +21,7 @@ configure_file(
         @ONLY)
 
 set(headers
+        src/config.h
         src/re.h
         src/utils.h
         src/cathub.h
@@ -30,6 +31,8 @@ set(headers
         src/extern/imgui_stdlib.h)
 
 set(sources
+src/config.cpp
+        src/re.cpp
         src/utils.cpp
         src/main.cpp
         src/animation.cpp

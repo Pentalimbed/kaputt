@@ -31,3 +31,5 @@ constexpr auto anim_dir        = "animations";
 constexpr auto anim_custom_dir = "custom";
 constexpr auto anim_custom_def = "default.toml";
 } // namespace kaputt
+
+using EventResult = RE::BSEventNotifyControl;

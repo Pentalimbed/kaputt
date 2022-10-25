@@ -63,7 +63,7 @@ void drawAnimationMenu()
         ImGui::TableNextColumn();
         ImGui::RadioButton("Tag", &filter_mode, 2);
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Currently only ");
+            ImGui::SetTooltip("Separate each tag with SPACE.");
 
         ImGui::EndTable();
     }
@@ -89,7 +89,7 @@ void drawAnimationMenu()
             anim_list.push_back(&anim);
         }
         // sort
-        // std::ranges::sort(anim_list, [](AnimEntry* a, AnimEntry* b) { return strcmpi(a->editor_id.c_str(), b->editor_id.c_str()); });
+        std::ranges::sort(anim_list, {}, &AnimEntry::editor_id);
 
         ImGuiListClipper clipper;
         clipper.Begin(anim_list.size());
@@ -104,13 +104,14 @@ void drawAnimationMenu()
                 ImGui::TableNextColumn();
                 ImGui::AlignTextToFramePadding();
                 if (anim.custom_tags.has_value())
-                    ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f}); // Indicate custom tags
+                    ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f}); // indicate custom tags
                 if (ImGui::Selectable(edid.c_str(), false))
-                    ;
+                    anim.testPlay();
                 if (anim.custom_tags.has_value())
                     ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Click to perform with the nearest NPC.\n"
+                    ImGui::SetTooltip("Click to test it on the nearest NPC.\n"
+                                      "Best when in a good position and they are not attacking.\n"
                                       "The conditions are not checked. So be wary.");
 
                 ImGui::TableNextColumn();
@@ -139,11 +140,9 @@ void drawAnimationMenu()
 
 void drawCatMenu()
 {
-    ImGui::ShowDemoWindow();
-
     if (ImGui::Begin("Kaputt Config Menu", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
-        ImGui::SetWindowSize({400, 600}, ImGuiCond_FirstUseEver);
+        ImGui::SetWindowSize({600, 600}, ImGuiCond_FirstUseEver);
 
         ImGui::BeginChild("main", {0.f, -ImGui::GetFontSize() - 2.f});
         if (ImGui::BeginTabBar("##"))

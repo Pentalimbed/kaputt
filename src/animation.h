@@ -52,6 +52,7 @@ struct AnimEntry
     void parse_toml_array(const toml::array* arr, bool is_custom = false) throw(std::runtime_error);
 
     void play(RE::Actor* attacker, RE::Actor* victim);
+    void testPlay(float max_range = 25); // play with player and a near target
 };
 
 class AnimEntryManager
@@ -69,6 +70,12 @@ public:
     void            loadCustomFile(fs::path dir);
     void            saveCustomFile(fs::path dir);
     void            clearCustomTags();
+
+    inline void initialize()
+    {
+        loadAllEntryFiles();
+        loadCustomFile(getDefaultCustomFilePath());
+    }
 
     StrMap<AnimEntry> anim_dict;
 };

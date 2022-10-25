@@ -1,4 +1,6 @@
 #include "animation.h"
+#include "re.h"
+#include "menu.h"
 
 #include <sstream>
 
@@ -25,7 +27,26 @@ void AnimEntry::parse_toml_array(const toml::array* arr, bool is_custom)
 void AnimEntry::play(RE::Actor* attacker, RE::Actor* victim)
 {
     logger::debug("Now playing {}", editor_id);
-    // attacker->GetActorRuntimeData().currentProcess->playPairedIdle(attacker->currentProcess, attacker, RE::DEFAULT_OBJECT::kActionIdle, idle_form, true, false, victim);
+    playPairedIdle(attacker->GetActorRuntimeData().currentProcess, attacker, RE::DEFAULT_OBJECT::kActionIdle, idle_form, true, false, victim);
+    setStatusMessage("Last played by this mod: " + editor_id); // notify menu
+}
+
+void AnimEntry::testPlay(float max_range)
+{
+    auto player = RE::PlayerCharacter::GetSingleton();
+    if (!player)
+    {
+        logger::info("No player found!");
+        return;
+    }
+    auto victim = getNearestActor(player, max_range);
+    if (!victim)
+    {
+        logger::info("No target found!");
+        return;
+    }
+
+    play(player, victim);
 }
 
 void AnimEntryManager::loadSingleEntryFile(fs::path dir)

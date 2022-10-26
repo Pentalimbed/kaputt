@@ -1,5 +1,7 @@
 #include "pipeline.h"
 
+#include <random>
+
 namespace kaputt
 {
 toml::table TaggerOutput::toToml()
@@ -75,7 +77,12 @@ const AnimEntry* FilterPipeline::pickAnimation(const RE::Actor* attacker, const 
     if (filtered_anims.empty())
         return nullptr;
 
-    return filtered_anims[rand() % filtered_anims.size()];
+    static std::default_random_engine     gen;
+    std::uniform_int_distribution<double> unif(0.0, filtered_anims.size() - 1);
+    std::once_flag                        flag;
+    std::call_once(flag, [&]() { gen.seed(std::random_device()()); });
+
+    return filtered_anims[unif(gen)];
 }
 
 } // namespace kaputt

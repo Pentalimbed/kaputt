@@ -81,10 +81,10 @@ public:
     }
 
     inline fs::path getDefaultPath() { return fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir) / fs::path(filter_def); }
-    void            loadFile(fs::path dir, bool append = false);
-    void            saveFile(fs::path dir) const;
-    inline void     loadDefaultFile() { loadFile(getDefaultPath()); }
-    inline void     saveDefaultFile() { saveFile(getDefaultPath()); }
+    bool            loadFile(fs::path dir, bool append = false);
+    bool            saveFile(fs::path dir) const;
+    inline bool     loadDefaultFile() { return loadFile(getDefaultPath()); }
+    inline bool     saveDefaultFile() { return saveFile(getDefaultPath()); }
 };
 
 } // namespace kaputt

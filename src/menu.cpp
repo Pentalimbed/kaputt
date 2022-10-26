@@ -23,11 +23,20 @@ std::optional<std::string_view> pickARulePopupContent()
     return std::nullopt;
 }
 
+int filterFilename(ImGuiInputTextCallbackData* data)
+{
+    if (data->EventChar < 256 && (isalnum((char)data->EventChar) || ((char)data->EventChar == '_')))
+        return 0;
+    return 1;
+}
+
 
 void drawFilterMenu()
 {
-    static size_t selected_tagexp_idx = INT64_MAX;
-    static size_t selected_tagger_idx = INT64_MAX;
+    static size_t      selected_tagexp_idx = INT64_MAX;
+    static size_t      selected_tagger_idx = INT64_MAX;
+    static std::string filter_save_name    = "default";
+    static std::string filter_load_name    = "default";
 
     auto  filter_pipeline = FilterPipeline::getSingleton();
     auto& tagexp_list     = filter_pipeline->tagexp_list;
@@ -44,9 +53,66 @@ void drawFilterMenu()
         }
 
         ImGui::TableNextColumn();
-        ImGui::Button("Save Filter As...", {-FLT_MIN, 0.f});
+        if (ImGui::Button("Save Filter As...", {-FLT_MIN, 0.f}))
+            ImGui::OpenPopup("save filter");
+        if (ImGui::BeginPopup("save filter"))
+        {
+            if (ImGui::InputText("Press Enter", &filter_save_name, ImGuiInputTextFlags_EnterReturnsTrue, filterFilename))
+            {
+                setStatusMessage(
+                    filter_pipeline->saveFile(fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir) / fs::path(filter_save_name + ".toml")) ?
+                        "Filter saved as " + filter_save_name :
+                        "Something went wrong while saving " + filter_save_name + ". Please check the log.");
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
         ImGui::TableNextColumn();
-        ImGui::Button("Load Filter From...", {-FLT_MIN, 0.f});
+        if (ImGui::Button("Load Filter From...", {-FLT_MIN, 0.f}))
+            ImGui::OpenPopup("load filter");
+        if (ImGui::BeginPopup("load filter"))
+        {
+            bool has_one_selected;
+            for (auto const& dir_entry : fs::directory_iterator{fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir)})
+                if (dir_entry.is_regular_file())
+                    if (auto file_path = dir_entry.path(); file_path.extension() == ".toml")
+                    {
+                        bool selected = file_path.stem() == filter_load_name;
+                        if (selected)
+                            has_one_selected = true;
+                        if (ImGui::Selectable(file_path.stem().string().c_str(), selected, ImGuiSelectableFlags_DontClosePopups))
+                            filter_load_name = file_path.stem().string();
+                    }
+
+            ImGui::Separator();
+
+            if (!has_one_selected)
+                ImGui::BeginDisabled();
+
+            if (ImGui::Button("Overwrite"))
+            {
+                setStatusMessage(
+                    filter_pipeline->loadFile(fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir) / fs::path(filter_load_name + ".toml")) ?
+                        "Loaded filter preset " + filter_load_name :
+                        "Something went wrong while loading " + filter_load_name + ". Please check the log.");
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Append"))
+            {
+                setStatusMessage(
+                    filter_pipeline->loadFile(fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir) / fs::path(filter_load_name + ".toml"), true) ?
+                        "Loaded filter preset " + filter_load_name :
+                        "Something went wrong while loading " + filter_load_name + ". Please check the log.");
+                ImGui::CloseCurrentPopup();
+            }
+            if (!has_one_selected)
+                ImGui::EndDisabled();
+
+            ImGui::EndPopup();
+        }
+
         ImGui::EndTable();
     }
     ImGui::Separator();
@@ -63,7 +129,7 @@ void drawFilterMenu()
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("If an animation has the tag on the left, then all tags on the right are provided.\n"
                               "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.\n"
-                              "Click the '->' to select the item for removal.");
+                              "Click the '->' to select the item for removal. Duplicate items will be removed after save and reload.");
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
@@ -75,7 +141,6 @@ void drawFilterMenu()
 
         ImGui::EndTable();
     }
-
 
     if (ImGui::BeginTable("tagexp", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
                           {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))

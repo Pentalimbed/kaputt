@@ -87,8 +87,10 @@ const AnimEntry* FilterPipeline::pickAnimation(const RE::Actor* attacker, const 
     return filtered_anims[unif(gen)];
 }
 
-void FilterPipeline::loadFile(fs::path dir, bool append)
+bool FilterPipeline::loadFile(fs::path dir, bool append)
 {
+    bool all_good = true;
+
     if (!append)
         clear();
 
@@ -98,7 +100,7 @@ void FilterPipeline::loadFile(fs::path dir, bool append)
         auto err = result.error();
         logger::warn("Failed to parse filter file {}. Error: {} (Line {}, Col {}).",
                      dir.string(), err.description(), err.source().begin.line, err.source().begin.column);
-        return;
+        return false;
     }
     logger::info("Parsing filter file {}", dir.string());
 
@@ -116,10 +118,14 @@ void FilterPipeline::loadFile(fs::path dir, bool append)
                 catch (std::runtime_error e)
                 {
                     logger::warn("Failed to parse one of the taggers. Error: {}", e.what());
+                    all_good = false;
                 }
             }
             else
+            {
                 logger::warn("Failed to parse one of the taggers. Error: Wrong data type.");
+                all_good = false;
+            }
         }
     else
         logger::warn(R"(Required "taggers" field unfulfilled. Skipped.)");
@@ -131,13 +137,21 @@ void FilterPipeline::loadFile(fs::path dir, bool append)
                     .from = std::string(from.str()),
                     .to   = StrSet::fromToml(*to)});
             else
+            {
                 logger::warn("Failed to parse one of the tag expansions. Error: Wrong data type.");
+                all_good = false;
+            }
         }
     else
+    {
         logger::warn(R"(Required "tagexps" field unfulfilled. Skipped.)");
+        all_good = false;
+    }
+
+    return all_good;
 }
 
-void FilterPipeline::saveFile(fs::path dir) const
+bool FilterPipeline::saveFile(fs::path dir) const
 {
     logger::info("Saving filter file {}.", dir.string());
 
@@ -145,7 +159,7 @@ void FilterPipeline::saveFile(fs::path dir) const
     if (!f.is_open())
     {
         logger::error("Failed to write at {}!", dir.string());
-        return;
+        return false;
     }
 
     toml::array taggers_arr = {};
@@ -156,6 +170,8 @@ void FilterPipeline::saveFile(fs::path dir) const
         tagexp_tbl.emplace<toml::array>(tagexp.from, tagexp.to.toToml());
 
     f << toml::table{{"taggers", taggers_arr}, {"tagexps", tagexp_tbl}};
+
+    return true;
 }
 
 } // namespace kaputt

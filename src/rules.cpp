@@ -18,9 +18,9 @@ std::unique_ptr<Rule> Rule::getRule(std::string_view rule_name)
 }
 
 // Check
-bool AngleRule::operator()(RE::Actor* attacker, RE::Actor* victim) const
+bool AngleRule::operator()(const RE::Actor* attacker, const RE::Actor* victim) const
 {
-    float rel_angle = victim->GetHeadingAngle(attacker->GetPosition(), false);
+    float rel_angle = const_cast<RE::Actor*>(victim)->GetHeadingAngle(attacker->GetPosition(), false);
     while (rel_angle < params["angle_min"].ref<double>())
         rel_angle += 360;
     while (rel_angle > params["angle_min"].ref<double>())

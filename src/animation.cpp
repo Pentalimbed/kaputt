@@ -18,9 +18,9 @@ namespace kaputt
 void AnimEntry::parse_toml_array(const toml::array& arr, bool is_custom)
 {
     if (is_custom)
-        custom_tags.emplace(tomlArray2StrSet(arr));
+        custom_tags.emplace(StrSet::fromToml(arr));
     else
-        tags = tomlArray2StrSet(arr);
+        tags = StrSet::fromToml(arr);
 }
 
 void AnimEntry::play(RE::Actor* attacker, RE::Actor* victim)
@@ -144,7 +144,7 @@ void AnimEntryManager::saveCustomFile(fs::path dir)
     toml::table tbl = {};
     for (const auto& [edid, anim] : anim_dict)
         if (anim.custom_tags.has_value())
-            tbl.emplace<toml::array>(edid, strSet2TomlArray(anim.custom_tags.value()));
+            tbl.emplace<toml::array>(edid, anim.custom_tags.value().toToml());
     f << tbl;
     logger::info("Saved customization file {}.", dir.string());
 }

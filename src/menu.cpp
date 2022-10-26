@@ -84,7 +84,7 @@ void drawAnimationMenu()
         {
             if ((filter_mode == 1) && !edid.contains(filter_text)) continue;
             if ((filter_mode == 2) &&
-                std::ranges::any_of(splitTags(filter_text), [&](const std::string& tag) { return !anim.getTags().contains(tag); }))
+                std::ranges::none_of(splitTags(filter_text), [&](const std::string& tag) { return anim.getTags().contains(tag); }))
                 continue;
             anim_list.push_back(&anim);
         }

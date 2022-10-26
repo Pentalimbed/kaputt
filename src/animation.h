@@ -46,6 +46,7 @@ struct AnimEntry
     StrSet                tags;
     std::optional<StrSet> custom_tags = std::nullopt;
     inline StrSet&        getTags() { return custom_tags.has_value() ? custom_tags.value() : tags; }
+    inline const StrSet&  getTags() const { return getTags(); }
 
     void parse_toml_array(const toml::array& arr, bool is_custom = false);
 
@@ -53,9 +54,8 @@ struct AnimEntry
     void testPlay(float max_range = 25); // play with player and a near target
 };
 
-class AnimEntryManager
+struct AnimEntryManager
 {
-public:
     static AnimEntryManager* getSingleton()
     {
         static AnimEntryManager manager;

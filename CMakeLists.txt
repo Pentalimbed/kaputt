@@ -21,26 +21,24 @@ configure_file(
         @ONLY)
 
 set(headers
-        src/config.h
         src/re.h
         src/utils.h
         src/cathub.h
         src/animation.h
         src/menu.h
         src/rules.h
-        src/tagger.h
+        src/pipeline.h
         
         src/extern/imgui_stdlib.h)
 
 set(sources
-src/config.cpp
         src/re.cpp
         src/utils.cpp
         src/main.cpp
         src/animation.cpp
         src/menu.cpp
         src/rules.cpp
-        src/tagger.cpp
+        src/pipeline.cpp
 
         src/extern/imgui_stdlib.cpp
 

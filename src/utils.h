@@ -35,31 +35,33 @@ struct StrEq
 
 template <typename T>
 using StrMap = robin_hood::unordered_map<std::string, T, StrHash, StrEq>;
-using StrSet = robin_hood::unordered_set<std::string, StrHash, StrEq>;
+struct StrSet : public robin_hood::unordered_set<std::string, StrHash, StrEq>
+{
+    void merge(const StrSet& other)
+    {
+        for (auto& str : other)
+            emplace(str);
+    }
+
+    inline toml::array toToml() const
+    {
+        toml::array arr;
+        for (auto& v : *this)
+            arr.push_back(v);
+        return arr;
+    }
+    inline static StrSet fromToml(const toml::array& arr)
+    {
+        StrSet set;
+        for (auto& v : arr)
+            if (v.is_string())
+                set.insert(v.ref<std::string>());
+        return set;
+    }
+};
 
 std::string joinTags(const StrSet& tags, bool sorted = true);
 StrSet      splitTags(const std::string& str);
-
-inline void mergeStrSet(StrSet& to, const StrSet& from)
-{
-    for (auto& str : from)
-        to.emplace(str);
-}
-inline toml::array strSet2TomlArray(const StrSet& set)
-{
-    toml::array arr;
-    for (auto& v : set)
-        arr.push_back(v);
-    return arr;
-}
-inline StrSet tomlArray2StrSet(const toml::array& arr)
-{
-    StrSet set;
-    for (auto& v : arr)
-        if (v.is_string())
-            set.insert(v.ref<std::string>());
-    return set;
-}
 
 // only for the simple flat structure used in the code
 // don't use it for nested tables etc.

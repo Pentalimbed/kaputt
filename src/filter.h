@@ -17,8 +17,8 @@ struct TaggerOutput
         banned_tags.merge(other.banned_tags);
     }
 
-    toml::table         toToml();
-    static TaggerOutput fromToml(toml::table tbl);
+    toml::table         toToml() const;
+    static TaggerOutput fromToml(const toml::table& tbl);
 };
 
 struct Tagger
@@ -40,8 +40,8 @@ struct Tagger
             return {};
     }
 
-    toml::table   toToml();
-    static Tagger fromToml(toml::table tbl);
+    toml::table   toToml() const;
+    static Tagger fromToml(const toml::table& tbl);
 
     inline static TaggerOutput tag(const std::vector<Tagger>& tagger_list, const RE::Actor* attacker, const RE::Actor* victim)
     {
@@ -56,13 +56,16 @@ struct TagExpansion
 {
     std::string from;
     StrSet      to;
+
+    inline toml::table  toToml() const { return toml::table{{"from", from}, {"to", to.toToml()}}; }
+    static TagExpansion fromToml(const toml::table& tbl);
 };
 
 class FilterPipeline
 {
 private:
     std::vector<Tagger>       tagger_list;
-    std::vector<TagExpansion> tag_exp_list;
+    std::vector<TagExpansion> tagexp_list;
 
 public:
     static FilterPipeline* getSingleton()
@@ -72,6 +75,14 @@ public:
     }
 
     const AnimEntry* pickAnimation(const RE::Actor* attacker, const RE::Actor* victim) const;
+
+    inline void clear()
+    {
+        tagger_list.clear();
+        tagexp_list.clear();
+    }
+    void loadFile(fs::path dir, bool append = false);
+    void saveFile(fs::path dir) const;
 };
 
 } // namespace kaputt

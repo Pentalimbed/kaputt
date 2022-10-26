@@ -27,7 +27,7 @@ set(headers
         src/animation.h
         src/menu.h
         src/rules.h
-        src/pipeline.h
+        src/filter.h
         
         src/extern/imgui_stdlib.h)
 
@@ -38,7 +38,7 @@ set(sources
         src/animation.cpp
         src/menu.cpp
         src/rules.cpp
-        src/pipeline.cpp
+        src/filter.cpp
 
         src/extern/imgui_stdlib.cpp
 

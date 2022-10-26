@@ -1,6 +1,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "animation.h"
+#include "filter.h"
 #include "menu.h"
 #include "cathub.h"
 
@@ -57,6 +58,7 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
             logger::info("Game: data loaded");
 
             AnimEntryManager::getSingleton()->initialize();
+            FilterPipeline::getSingleton()->loadDefaultFile();
 
             integrateCatHub(); // Cathub
             break;

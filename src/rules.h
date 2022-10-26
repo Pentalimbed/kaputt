@@ -21,7 +21,6 @@ struct Rule
     virtual toml::table getDefaultParams() = 0;
 
     inline void init() { params = getDefaultParams(); }
-    inline void init(const toml::table& p) { params = p; }
     inline bool checkParamsValidity(const toml::table& p) { return isSameStructure(p, getDefaultParams()); }
 
     virtual void                       drawParams()    = 0;
@@ -30,7 +29,8 @@ struct Rule
 
     virtual bool operator()(const RE::Actor* attacker, const RE::Actor* victim) const = 0; // actual rule checking part
 
-    static std::unique_ptr<Rule> getRule(std::string_view rule_name);
+    static std::vector<std::string_view> listRules(); // TODO: Make these better
+    static std::unique_ptr<Rule>         getRule(std::string_view rule_name);
 };
 
 struct SingleActorRule : public Rule
@@ -47,13 +47,13 @@ struct SingleActorRule : public Rule
     virtual void drawOtherParams() = 0;
 
     virtual bool        operator()(const RE::Actor* actor) const = 0;
-    virtual inline bool operator()(const RE::Actor* attacker, const RE::Actor* victim) const { params["check_attacker"].ref<bool>() ? (*this)(attacker) : (*this)(victim); }
+    virtual inline bool operator()(const RE::Actor* attacker, const RE::Actor* victim) const { return params["check_attacker"].ref<bool>() ? (*this)(attacker) : (*this)(victim); }
 };
 
 struct UnconditionalRule : public Rule
 {
     virtual inline toml::table getDefaultParams() { return {}; }
-    virtual void               drawParams();
+    virtual inline void        drawParams(){};
 
     virtual constexpr std::string_view getName() const { return "Always"; }
     virtual constexpr std::string_view getHint() const { return "Always True."; }
@@ -105,7 +105,7 @@ struct EssentialRule : public SingleActorRule
 
 struct AngleRule : public Rule
 {
-    virtual inline toml::table getDefaultParams() { return toml::table{{"angle_min", -45.f}, {"angle_max", 45.f}}; }
+    virtual inline toml::table getDefaultParams() { return toml::table{{"angle_min", -45.}, {"angle_max", 45.}}; }
     virtual void               drawParams();
 
     virtual constexpr std::string_view getName() const { return "Attacker Angle"; }

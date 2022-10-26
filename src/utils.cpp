@@ -1,5 +1,17 @@
 #include "utils.h"
 
+#include <imgui.h>
+#include "extern/imgui_stdlib.h"
+
+bool drawTagsInputText(std::string_view label, StrSet& tags)
+{
+    auto tagstr = joinTags(tags);
+    auto result = ImGui::InputText(label.data(), &tagstr, ImGuiInputTextFlags_EnterReturnsTrue);
+    if (result)
+        tags = splitTags(tagstr);
+    return result;
+}
+
 std::string joinTags(const StrSet& tags, bool sorted)
 {
     std::string result = "";
@@ -27,7 +39,6 @@ std::string joinTags(const StrSet& tags, bool sorted)
 
     return result;
 }
-
 StrSet splitTags(const std::string& str)
 {
     std::istringstream iss(str);

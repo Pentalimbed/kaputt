@@ -21,8 +21,8 @@ struct AnimEntry
      * 
      *  -- Actor Weapon --
      *  e.g. a_dagger_l: attacker must wield dagger in left hand
-     *  ONE HANDED: fist dagger sword axe mace + _l _r
-     *  ALWAYS LEFT: staff shield torch
+     *  ONE HANDED: fist dagger sword axe mace staff + _l _r
+     *  ALWAYS LEFT: shield torch
      *  TWO HANDED: sword2h axe2h mace2h bow crossbow
      *  COMMON: 1h_l 1h_r 2h all_l all_r all
      * 

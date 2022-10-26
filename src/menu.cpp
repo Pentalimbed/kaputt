@@ -1,5 +1,6 @@
 #include "menu.h"
 #include "animation.h"
+#include "filter.h"
 
 #include <imgui.h>
 #include "extern/imgui_stdlib.h"
@@ -14,12 +15,206 @@ void               setStatusMessage(std::string_view msg)
     status_msg = msg;
 }
 
+std::optional<std::string_view> pickARulePopupContent()
+{
+    for (auto name : Rule::listRules())
+        if (ImGui::Selectable(name.data()))
+            return name;
+    return std::nullopt;
+}
+
+
+void drawFilterMenu()
+{
+    static size_t selected_tagexp_idx = INT64_MAX;
+    static size_t selected_tagger_idx = INT64_MAX;
+
+    auto  filter_pipeline = FilterPipeline::getSingleton();
+    auto& tagexp_list     = filter_pipeline->tagexp_list;
+    auto& tagger_list     = filter_pipeline->tagger_list;
+
+    // File operations
+    if (ImGui::BeginTable("io", 3))
+    {
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Save Filter", {-FLT_MIN, 0.f}))
+        {
+            filter_pipeline->saveDefaultFile();
+            setStatusMessage("Filter saved to default.toml");
+        }
+
+        ImGui::TableNextColumn();
+        ImGui::Button("Save Filter As...", {-FLT_MIN, 0.f});
+        ImGui::TableNextColumn();
+        ImGui::Button("Load Filter From...", {-FLT_MIN, 0.f});
+        ImGui::EndTable();
+    }
+    ImGui::Separator();
+
+    // Tag Expansions
+    if (ImGui::BeginTable("tagexp config", 3))
+    {
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Tag Expansion");
+        ImGui::AlignTextToFramePadding();
+        ImGui::SameLine();
+        ImGui::TextDisabled("[?]");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("If an animation has the tag on the left, then all tags on the right are provided.\n"
+                              "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.\n"
+                              "Click the '->' to select the item for removal.");
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
+            tagexp_list.push_back({});
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Remove", {-FLT_MIN, 0.f}) && (selected_tagexp_idx < tagexp_list.size()))
+            tagexp_list.erase(tagexp_list.begin() + selected_tagexp_idx);
+
+        ImGui::EndTable();
+    }
+
+
+    if (ImGui::BeginTable("tagexp", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
+                          {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
+    {
+        ImGui::TableSetupColumn("from", ImGuiTableColumnFlags_WidthStretch, 0.2);
+        ImGui::TableSetupColumn("arrow", ImGuiTableColumnFlags_WidthStretch, 0.05);
+        ImGui::TableSetupColumn("to", ImGuiTableColumnFlags_WidthStretch, 0.75);
+
+        ImGuiListClipper clipper;
+        clipper.Begin(tagexp_list.size());
+        while (clipper.Step())
+            for (int row_n = clipper.DisplayStart; row_n < clipper.DisplayEnd; row_n++)
+            {
+                auto& tagexp = tagexp_list[row_n];
+
+                ImGui::PushID(row_n);
+
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::InputText("##from", &tagexp.from);
+
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                if (ImGui::Selectable("->", selected_tagexp_idx == row_n))
+                    selected_tagexp_idx = row_n;
+
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                drawTagsInputText("##to", tagexp.to);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Press Enter to apply.\n"
+                                      "The tags are sorted and seperated by SPACE.");
+
+                ImGui::PopID();
+            }
+
+        ImGui::EndTable();
+    }
+
+    // Taggers
+    if (ImGui::BeginTable("tagger config", 5))
+    {
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Tagging Rules");
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("[?]");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Each rule, if condition is met, will provide some required tags and banned tags.\n"
+                              "An animation can be selected if it has all required tags and none of banned tags.");
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
+            ImGui::OpenPopup("Pick A Rule");
+        if (ImGui::BeginPopup("Pick A Rule"))
+        {
+            auto result = pickARulePopupContent();
+            if (result.has_value())
+            {
+                tagger_list.push_back({});
+                tagger_list.back().rule = Rule::getRule(result.value());
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Remove", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size()))
+            tagger_list.erase(tagger_list.begin() + selected_tagger_idx);
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Move Up", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size()) && (selected_tagger_idx > 0))
+            std::swap(tagger_list[selected_tagger_idx], tagger_list[selected_tagger_idx - 1]), --selected_tagger_idx;
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Move Down", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size() - 1))
+            std::swap(tagger_list[selected_tagger_idx], tagger_list[selected_tagger_idx + 1]), ++selected_tagger_idx;
+
+        ImGui::EndTable();
+    }
+
+    if (ImGui::BeginTable("tagger", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY))
+    {
+        ImGui::TableSetupColumn("Rule", ImGuiTableColumnFlags_WidthStretch, 0.4);
+        ImGui::TableSetupColumn("Parameters", ImGuiTableColumnFlags_WidthStretch, 0.3);
+        ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.3);
+        ImGui::TableHeadersRow();
+
+        size_t count = 0;
+        for (auto& tagger : tagger_list)
+        {
+            ImGui::PushID(count);
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f});
+            if (ImGui::Selectable(tagger.rule->getName().data(), selected_tagger_idx == count))
+                selected_tagger_idx = count;
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip(tagger.rule->getHint().data());
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::InputTextWithHint("##", "Description", &tagger.comment);
+
+            ImGui::TableNextColumn();
+            tagger.rule->drawParams();
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("If True", &tagger.enable_true);
+            if (tagger.enable_true)
+            {
+                ImGui::PushID(1);
+                drawTagsInputText("Require", tagger.true_tags.required_tags);
+                drawTagsInputText("Ban", tagger.true_tags.banned_tags);
+                ImGui::PopID();
+            }
+            ImGui::Checkbox("If False", &tagger.enable_false);
+            if (tagger.enable_false)
+            {
+                ImGui::PushID(0);
+                drawTagsInputText("Require", tagger.false_tags.required_tags);
+                drawTagsInputText("Ban", tagger.false_tags.banned_tags);
+                ImGui::PopID();
+            }
+
+            ImGui::PopID();
+            ++count;
+        }
+
+        ImGui::EndTable();
+    }
+}
+
 void drawAnimationMenu()
 {
     static std::string         filter_text = {};
     static ImGuiTableSortSpecs sort_specs  = {};
     static int                 filter_mode = 0; // 0 None 1 ID 2 Tags
-    // static std::string selected_edid = ""; // Selected anim entry in the list
 
     auto anim_manager = AnimEntryManager::getSingleton();
 
@@ -70,13 +265,12 @@ void drawAnimationMenu()
 
     // list of anims
     constexpr auto table_flags =
-        ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV | ImGuiTableFlags_ScrollY;
+        ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;
     if (ImGui::BeginTable("Animation Entries", 2, table_flags, {0.f, -FLT_MIN}))
     {
         ImGui::TableSetupColumn("Editor ID", ImGuiTableColumnFlags_WidthStretch, 0.4);
         ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.6);
         ImGui::TableHeadersRow();
-        ImGui::TableNextRow();
 
         // filter
         std::vector<AnimEntry*> anim_list;
@@ -127,7 +321,7 @@ void drawAnimationMenu()
 
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("Press Enter to apply tag editing.\n"
-                                      "The tags will be sorted.\n"
+                                      "The tags are sorted and seperated by SPACE.\n"
                                       "Leave empty and press Enter to set to default.\n"
                                       "(Remember to save to file afterwards.)");
 
@@ -140,6 +334,8 @@ void drawAnimationMenu()
 
 void drawCatMenu()
 {
+    ImGui::ShowDemoWindow();
+
     if (ImGui::Begin("Kaputt Config Menu", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
         ImGui::SetWindowSize({600, 600}, ImGuiCond_FirstUseEver);
@@ -148,9 +344,13 @@ void drawCatMenu()
         if (ImGui::BeginTabBar("##"))
         {
             if (ImGui::BeginTabItem("General")) { ImGui::EndTabItem(); }
-            if (ImGui::BeginTabItem("Triggers")) { ImGui::EndTabItem(); }
-            if (ImGui::BeginTabItem("Rules")) { ImGui::EndTabItem(); }
-            if (ImGui::BeginTabItem("Animations"))
+            if (ImGui::BeginTabItem("Trigger")) { ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Filter"))
+            {
+                drawFilterMenu();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Animation"))
             {
                 drawAnimationMenu();
                 ImGui::EndTabItem();
@@ -159,9 +359,7 @@ void drawCatMenu()
         }
         ImGui::EndChild();
 
-        status_msg_mutex.lock();
-        ImGui::TextColored({0.7f, 0.7f, 0.7f, 1.0f}, status_msg.c_str());
-        status_msg_mutex.unlock();
+        ImGui::TextDisabled(status_msg.c_str());
     }
     ImGui::End();
 }

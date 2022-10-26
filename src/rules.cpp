@@ -4,17 +4,36 @@
 
 namespace kaputt
 {
+
+std::vector<std::string_view> Rule::listRules()
+{
+    return {UnconditionalRule().getName(),
+            BleedoutRule().getName(),
+            RagdollRule().getName(),
+            ProtectedRule().getName(),
+            EssentialRule().getName(),
+            AngleRule().getName()};
+}
+
 std::unique_ptr<Rule> Rule::getRule(std::string_view rule_name)
 {
-#define REGRULE(ChildRule)                  \
-    if (rule_name == ChildRule().getName()) \
-        return std::make_unique<ChildRule>();
+#define REGRULE(ChildRule)                           \
+    if (rule_name == ChildRule().getName())          \
+    {                                                \
+        auto result = std::make_unique<ChildRule>(); \
+        result->init();                              \
+        return std::move(result);                    \
+    }
 
+    REGRULE(UnconditionalRule)
     REGRULE(BleedoutRule)
     REGRULE(RagdollRule)
     REGRULE(ProtectedRule)
     REGRULE(EssentialRule)
     REGRULE(AngleRule)
+
+    logger::error("The plugin is trying to request a nonexistant rule. Please report to the author.");
+    return nullptr;
 }
 
 // Check
@@ -33,7 +52,7 @@ bool AngleRule::operator()(const RE::Actor* attacker, const RE::Actor* victim) c
 void SingleActorRule::drawParams()
 {
     bool check_attacker = params["check_attacker"].ref<bool>();
-    if (ImGui::Selectable(check_attacker ? "Attacker" : "Victim"))
+    if (ImGui::Selectable(check_attacker ? "On Attacker" : "On Victim"))
         params["check_attacker"].ref<bool>() = !check_attacker;
     drawOtherParams();
 }

@@ -60,6 +60,7 @@ struct StrSet : public robin_hood::unordered_set<std::string, StrHash, StrEq>
     }
 };
 
+bool        drawTagsInputText(std::string_view label, StrSet& tags);
 std::string joinTags(const StrSet& tags, bool sorted = true);
 StrSet      splitTags(const std::string& str);
 

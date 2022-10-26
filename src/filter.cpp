@@ -22,7 +22,7 @@ TaggerOutput TaggerOutput::fromToml(const toml::table& tbl)
 
 toml::table Tagger::toToml() const
 {
-    toml::table tbl{
+    return toml::table{
         {"rule", rule->getName()},
         {"params", rule->params},
         {"comment", comment},
@@ -45,27 +45,16 @@ Tagger Tagger::fromToml(const toml::table& tbl)
 
     if (!tagger.rule->checkParamsValidity(*tbl["params"].as_table()))
         throw std::runtime_error("Wrong parameters for rule type " + tbl["rule"].ref<std::string>() + '.');
+    tagger.rule->params = *tbl["params"].as_table();
 
     tagger.true_tags  = TaggerOutput::fromToml(*tbl["true_tags"].as_table());
     tagger.false_tags = TaggerOutput::fromToml(*tbl["false_tags"].as_table());
 
     tagger.enable_true  = tbl["enable_true"].ref<bool>();
     tagger.enable_false = tbl["enable_false"].ref<bool>();
-    tagger.rule->init(*tbl["params"].as_table());
-    tagger.comment = tbl["comment"].ref<std::string>();
+    tagger.comment      = tbl["comment"].ref<std::string>();
 
     return tagger;
-}
-
-TagExpansion TagExpansion::fromToml(const toml::table& tbl)
-{
-    if (!(tbl["from"].as_string() && tbl["to"].as_array()))
-        throw std::runtime_error(R"(Required TagExpansion field(s) ("from" or "to") unfulfilled.)");
-
-    TagExpansion tagexp;
-    tagexp.to   = StrSet::fromToml(*tbl["to"].as_array());
-    tagexp.from = tbl["from"].ref<std::string>();
-    return tagexp;
 }
 
 const AnimEntry* FilterPipeline::pickAnimation(const RE::Actor* attacker, const RE::Actor* victim) const
@@ -114,6 +103,7 @@ void FilterPipeline::loadFile(fs::path dir, bool append)
     logger::info("Parsing filter file {}", dir.string());
 
     auto tbl = result.table();
+
     if (auto taggers_arr = tbl["taggers"].as_array())
         for (auto& v : *taggers_arr)
         {
@@ -133,21 +123,13 @@ void FilterPipeline::loadFile(fs::path dir, bool append)
         }
     else
         logger::warn(R"(Required "taggers" field unfulfilled. Skipped.)");
-
-    if (auto taggers_arr = tbl["tagexps"].as_array())
-        for (auto& v : *taggers_arr)
+    if (auto taggers_tbl = tbl["tagexps"].as_table())
+        for (auto& [from, v] : *taggers_tbl)
         {
-            if (auto tagger_tbl = v.as_table())
-            {
-                try
-                {
-                    tagger_list.push_back(Tagger::fromToml(*tagger_tbl));
-                }
-                catch (std::runtime_error e)
-                {
-                    logger::warn("Failed to parse one of the tag expansions. Error: {}", e.what());
-                }
-            }
+            if (auto to = v.as_array())
+                tagexp_list.push_back(TagExpansion{
+                    .from = std::string(from.str()),
+                    .to   = StrSet::fromToml(*to)});
             else
                 logger::warn("Failed to parse one of the tag expansions. Error: Wrong data type.");
         }
@@ -169,11 +151,11 @@ void FilterPipeline::saveFile(fs::path dir) const
     toml::array taggers_arr = {};
     for (const auto& tagger : tagger_list)
         taggers_arr.emplace_back<toml::table>(tagger.toToml());
-    toml::array tagexp_arr = {};
-    for (const auto& tagexp : tagger_list)
-        tagexp_arr.emplace_back<toml::table>(tagexp.toToml());
+    toml::table tagexp_tbl = {};
+    for (const auto& tagexp : tagexp_list)
+        tagexp_tbl.emplace<toml::array>(tagexp.from, tagexp.to.toToml());
 
-    f << toml::table{{"taggers", taggers_arr}, {"tagexps", tagexp_arr}};
+    f << toml::table{{"taggers", taggers_arr}, {"tagexps", tagexp_tbl}};
 }
 
 } // namespace kaputt

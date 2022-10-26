@@ -23,8 +23,8 @@ struct TaggerOutput
 
 struct Tagger
 {
-    std::unique_ptr<Rule> rule;
-    std::string           comment;
+    std::unique_ptr<Rule> rule         = nullptr;
+    std::string           comment      = "";
     bool                  enable_true  = false;
     bool                  enable_false = false;
     TaggerOutput          true_tags    = {};
@@ -39,10 +39,6 @@ struct Tagger
         else
             return {};
     }
-
-    toml::table   toToml() const;
-    static Tagger fromToml(const toml::table& tbl);
-
     inline static TaggerOutput tag(const std::vector<Tagger>& tagger_list, const RE::Actor* attacker, const RE::Actor* victim)
     {
         TaggerOutput output = {};
@@ -50,19 +46,21 @@ struct Tagger
             output.merge(tagger.tag(attacker, victim));
         return output;
     }
+
+    toml::table   toToml() const;
+    static Tagger fromToml(const toml::table& tbl);
 };
 
 struct TagExpansion
 {
-    std::string from;
-    StrSet      to;
-
-    inline toml::table  toToml() const { return toml::table{{"from", from}, {"to", to.toToml()}}; }
-    static TagExpansion fromToml(const toml::table& tbl);
+    std::string from = "";
+    StrSet      to   = {};
 };
 
 class FilterPipeline
 {
+    friend void drawFilterMenu();
+
 private:
     std::vector<Tagger>       tagger_list;
     std::vector<TagExpansion> tagexp_list;
@@ -81,8 +79,12 @@ public:
         tagger_list.clear();
         tagexp_list.clear();
     }
-    void loadFile(fs::path dir, bool append = false);
-    void saveFile(fs::path dir) const;
+
+    inline fs::path getDefaultPath() { return fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir) / fs::path(filter_def); }
+    void            loadFile(fs::path dir, bool append = false);
+    void            saveFile(fs::path dir) const;
+    inline void     loadDefaultFile() { loadFile(getDefaultPath()); }
+    inline void     saveDefaultFile() { saveFile(getDefaultPath()); }
 };
 
 } // namespace kaputt

@@ -26,16 +26,18 @@ toml::table Tagger::toToml()
         {"rule", rule->getName()},
         {"params", rule->params},
         {"comment", comment},
+        {"enable_true", enable_true},
+        {"enable_false", enable_false},
+        {"true_tags", true_tags.toToml()},
+        {"false_tags", false_tags.toToml()},
     };
-    if (true_tags.has_value())
-        tbl.emplace<toml::table>("true_tags", true_tags.value().toToml());
-    if (false_tags.has_value())
-        tbl.emplace<toml::table>("false_tags", false_tags.value().toToml());
 }
 
 Tagger Tagger::fromToml(toml::table tbl)
 {
-    if (!(tbl["rule"].as_string() && tbl["params"].as_table() && tbl["comment"].as_string()))
+    if (!(tbl["rule"].as_string() && tbl["params"].as_table() && tbl["comment"].as_string() &&
+          tbl["enable_true"].as_boolean() && tbl["enable_false"].as_boolean() &&
+          tbl["true_tags"].as_table() && tbl["false_tags"].as_table()))
         throw std::runtime_error(R"(Required field ("rule" or "params" or "comment") not fulfilled.)");
 
     Tagger tagger;
@@ -44,11 +46,11 @@ Tagger Tagger::fromToml(toml::table tbl)
     if (!tagger.rule->checkParamsValidity(*tbl["params"].as_table()))
         throw std::runtime_error("Wrong parameters for rule type " + tbl["rule"].ref<std::string>() + '.');
 
-    if (tbl.contains("true_tags"))
-        tagger.true_tags = TaggerOutput::fromToml(*tbl["true_tags"].as_table());
-    if (tbl.contains("false_tags"))
-        tagger.false_tags = TaggerOutput::fromToml(*tbl["false_tags"].as_table());
+    tagger.true_tags  = TaggerOutput::fromToml(*tbl["true_tags"].as_table());
+    tagger.false_tags = TaggerOutput::fromToml(*tbl["false_tags"].as_table());
 
+    tagger.enable_true  = tbl["enable_true"].ref<bool>();
+    tagger.enable_false = tbl["enable_false"].ref<bool>();
     tagger.rule->init(*tbl["params"].as_table());
     tagger.comment = tbl["comment"].ref<std::string>();
 
@@ -78,7 +80,7 @@ const AnimEntry* FilterPipeline::pickAnimation(const RE::Actor* attacker, const 
         return nullptr;
 
     static std::default_random_engine     gen;
-    std::uniform_int_distribution<double> unif(0.0, filtered_anims.size() - 1);
+    std::uniform_int_distribution<size_t> unif(0, filtered_anims.size() - 1);
     std::once_flag                        flag;
     std::call_once(flag, [&]() { gen.seed(std::random_device()()); });
 

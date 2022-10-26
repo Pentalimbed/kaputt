@@ -23,12 +23,22 @@ struct TaggerOutput
 
 struct Tagger
 {
-    std::unique_ptr<Rule>       rule;
-    std::string                 comment;
-    std::optional<TaggerOutput> true_tags  = std::nullopt;
-    std::optional<TaggerOutput> false_tags = std::nullopt;
+    std::unique_ptr<Rule> rule;
+    std::string           comment;
+    bool                  enable_true  = false;
+    bool                  enable_false = false;
+    TaggerOutput          true_tags    = {};
+    TaggerOutput          false_tags   = {};
 
-    inline TaggerOutput tag(const RE::Actor* attacker, const RE::Actor* victim) const { return (*rule)(attacker, victim) ? true_tags.value_or(TaggerOutput{}) : false_tags.value_or(TaggerOutput{}); }
+    inline TaggerOutput tag(const RE::Actor* attacker, const RE::Actor* victim) const
+    {
+        if (enable_true || enable_false) // optimization
+            return (*rule)(attacker, victim) ?
+                (enable_true ? true_tags : TaggerOutput{}) :
+                (enable_false ? false_tags : TaggerOutput{});
+        else
+            return {};
+    }
 
     toml::table   toToml();
     static Tagger fromToml(toml::table tbl);

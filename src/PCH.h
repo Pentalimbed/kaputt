@@ -23,15 +23,15 @@ void write_thunk_call()
 }
 } // namespace stl
 
+using EventResult = RE::BSEventNotifyControl;
+
+template <typename T>
+using StrMap = std::map<std::string, T, std::less<>>;
+using StrSet = std::set<std::string, std::less<>>;
+
 namespace kaputt
 {
-constexpr auto plugin_dir      = "Data\\SKSE\\Plugins";
-constexpr auto config_dir      = "Kaputt";
-constexpr auto anim_dir        = "animations";
-constexpr auto anim_custom_dir = "custom";
-constexpr auto anim_custom_def = "default.toml";
-constexpr auto filter_dir      = "filters";
-constexpr auto filter_def      = "default.toml";
+constexpr auto def_config_path = R"(Data\SKSE\Plugins\kaputt.toml)";
+constexpr auto config_dir      = R"(Data\SKSE\Plugins\kaputt\configs)";
+constexpr auto anim_dir        = R"(Data\SKSE\Plugins\kaputt\anims)";
 } // namespace kaputt
-
-using EventResult = RE::BSEventNotifyControl;

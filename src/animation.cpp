@@ -1,158 +1,112 @@
 #include "animation.h"
+
+#include "utils.h"
 #include "re.h"
 #include "menu.h"
 
-#include <sstream>
-
-StrSet tomlArray2Tags(const toml::array* arr)
-{
-    StrSet tags;
-    for (const auto& tag : *arr)
-        if (tag.is_string())
-            tags.insert(tag.ref<std::string>());
-    return tags;
-}
+#include <filesystem>
+namespace fs = std::filesystem;
 
 namespace kaputt
 {
-void AnimEntry::parse_toml_array(const toml::array& arr, bool is_custom)
+std::vector<std::string_view> AnimManager::listAnims(std::string_view filter_str, int filter_mode)
 {
-    if (is_custom)
-        custom_tags.emplace(StrSet::fromToml(arr));
+    std::vector<std::string_view> retval;
+    for (auto const& [edid, _] : tags_map)
+    {
+        if ((filter_mode == 1) && !edid.contains(filter_str))
+            continue;
+        if ((filter_mode == 2) && !std::ranges::all_of(splitTags(filter_str), [&](const std::string& tag) { return getTags(edid)->contains(tag); }))
+            continue;
+        retval.push_back(edid);
+    }
+    return retval;
+}
+
+const StrSet* AnimManager::getTags(std::string_view edid)
+{
+    if (auto result_tags = tags_map.find(edid); result_tags != tags_map.end())
+    {
+        auto result_custom_tags = custom_tags_map.find(edid);
+        return (result_custom_tags == custom_tags_map.end()) ? &result_tags->second : &result_custom_tags->second;
+    }
     else
-        tags = StrSet::fromToml(arr);
+        return nullptr;
 }
 
-void AnimEntry::play(RE::Actor* attacker, RE::Actor* victim)
+bool AnimManager::setTags(std::string_view edid, const StrSet& tags)
 {
-    logger::debug("Now playing {}", editor_id);
-    playPairedIdle(attacker->GetActorRuntimeData().currentProcess, attacker, RE::DEFAULT_OBJECT::kActionIdle, idle_form, true, false, victim);
-    setStatusMessage("Last played by this mod: " + editor_id); // notify menu
-}
-
-void AnimEntry::testPlay(float max_range)
-{
-    auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player)
+    if (auto result_tags = tags_map.find(edid); result_tags != tags_map.end())
     {
-        logger::info("No player found!");
-        return;
+        custom_tags_map.insert_or_assign(std::string{edid}, tags);
+        return true;
     }
-    auto victim = getNearestActor(player, max_range);
-    if (!victim)
-    {
-        logger::info("No target found!");
-        return;
-    }
-
-    play(player, victim);
+    else
+        return false;
 }
 
-void AnimEntryManager::loadSingleEntryFile(fs::path dir)
+bool AnimManager::loadAnims()
 {
-    auto result = toml::parse_file(dir.c_str());
-    if (!result)
-    {
-        auto err = result.error();
-        logger::warn("Failed to parse file {}. Error: {} (Line {}, Col {})",
-                     dir.string(), err.description(), err.source().begin.line, err.source().begin.column);
-        return;
-    }
-    logger::info("Parsing file {}", dir.string());
+    logger::info("Loading animation entries...");
 
-    auto     tbl        = result.table();
-    uint16_t anim_count = 0;
-    for (auto [edid, v] : tbl)
-        if (v.is_array())
-        {
-            auto form = RE::TESForm::LookupByEditorID<RE::TESIdleForm>(edid);
-            if (!form)
-            {
-                logger::warn("Failed to parse entry {}. Error: Cannot find an IdleForm with this EditorId!", edid);
-                continue;
-            }
-            if (anim_dict.contains(edid.str()))
-            {
-                logger::warn("Failed to parse entry {}. Error: An entry with the same EditorId has been registered!", edid);
-                continue;
-            }
+    bool all_ok = true;
 
-            AnimEntry entry{
-                .editor_id = std::string(edid),
-                .idle_form = form,
-            };
-            entry.parse_toml_array(*v.as_array());
-            anim_dict[std::string(edid)] = std::move(entry);
-            logger::info("Added entry {}.", edid);
-            ++anim_count;
-        }
-    logger::info("Parsed file {}. {} animations were registered.", dir.string(), anim_count);
-}
-
-void AnimEntryManager::loadAllEntryFiles()
-{
-    logger::info("Reading animations...");
-
-    auto full_anim_dir = fs::path(plugin_dir) / fs::path(config_dir) / fs::path(anim_dir);
-    for (auto const& dir_entry : fs::directory_iterator{full_anim_dir})
+    for (auto const& dir_entry : fs::directory_iterator{anim_dir})
         if (dir_entry.is_regular_file())
-            if (auto file_path = dir_entry.path(); file_path.extension() == ".toml")
-                loadSingleEntryFile(file_path);
-}
-
-void AnimEntryManager::loadCustomFile(fs::path dir)
-{
-    clearCustomTags();
-
-    auto result = toml::parse_file(dir.c_str());
-    if (!result)
-    {
-        auto err = result.error();
-        logger::warn("Failed to parse file {}. Error: {} (Line {}, Col {}).",
-                     dir.string(), err.description(), err.source().begin.line, err.source().begin.column);
-        return;
-    }
-    logger::info("Parsing customization file {}", dir.string());
-
-    auto tbl = result.table();
-    for (auto [edid, v] : tbl)
-        if (v.is_array())
-        {
-            if (!anim_dict.contains(edid.str()))
+            if (auto file_path = dir_entry.path(); file_path.extension() == ".json")
             {
-                logger::info("Customization entry {} is not registered. This is ok.", edid);
-                continue;
+                logger::info("Reading {}", file_path.string());
+
+                std::ifstream istream{file_path};
+                if (!istream.is_open())
+                {
+                    logger::warn("Failed to open {}", file_path.filename().string());
+                    all_ok = false;
+                    continue;
+                }
+
+                json j;
+                try
+                {
+                    j = json::parse(istream);
+                }
+                catch (json::parse_error& e)
+                {
+                    logParseError(e);
+                    all_ok = false;
+                    continue;
+                }
+
+                StrMap<StrSet> new_tags = {};
+                try
+                {
+                    new_tags = j;
+                }
+                catch (json::exception& e)
+                {
+                    logJsonException("StrMap<StrSet>", e);
+                    all_ok = false;
+                    continue;
+                }
+                std::erase_if(new_tags, [&](const auto& item) {
+                    auto const& [edid, tags] = item;
+                    auto form                = RE::TESForm::LookupByEditorID<RE::TESIdleForm>(edid);
+                    if (!form)
+                    {
+                        logger::warn("Cannot find IdleForm {}!", edid);
+                        all_ok = false;
+                        return true;
+                    }
+                    return false;
+                });
+
+                auto anim_count = new_tags.size();
+                tags_map.merge(new_tags);
+
+                logger::info("Successfully registered {} animations in {}", anim_count, file_path.filename().string());
             }
 
-            anim_dict[std::string(edid)].parse_toml_array(*v.as_array(), true);
-            logger::info("Added customization entry {}", edid);
-        }
-    logger::info("Parsed customization file {}.", dir.string());
-}
-
-void AnimEntryManager::saveCustomFile(fs::path dir)
-{
-    logger::info("Saving customization file {}.", dir.string());
-
-    std::ofstream f(dir);
-    if (!f.is_open())
-    {
-        logger::error("Failed to write at {}!", dir.string());
-        return;
-    }
-
-    toml::table tbl = {};
-    for (const auto& [edid, anim] : anim_dict)
-        if (anim.custom_tags.has_value())
-            tbl.emplace<toml::array>(edid, anim.custom_tags.value().toToml());
-    f << tbl;
-    logger::info("Saved customization file {}.", dir.string());
-}
-
-void AnimEntryManager::clearCustomTags()
-{
-    for (auto& [edid, anim] : anim_dict)
-        anim.custom_tags = std::nullopt;
-    logger::info("All custom tags cleared.");
+    logger::info("All animation entries loaded. Total animation count: {}", tags_map.size());
+    return all_ok;
 }
 } // namespace kaputt

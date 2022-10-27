@@ -1,80 +1,32 @@
 #pragma once
 
-#include "utils.h"
-
-#include <filesystem>
-#include <optional>
-
 namespace kaputt
 {
-namespace fs = std::filesystem;
 
-
-struct AnimEntry
+class AnimManager
 {
-    std::string      editor_id;
-    RE::TESIdleForm* idle_form;
+    friend bool saveConfig(std::string_view path);
+    friend bool loadConfig(std::string_view path);
 
-    /** Tags
-     *  
-     *  Delimited by SPACE
-     * 
-     *  -- Actor Weapon --
-     *  e.g. a_dagger_l: attacker must wield dagger in left hand
-     *  ONE HANDED: fist dagger sword axe mace staff + _l _r
-     *  ALWAYS LEFT: shield torch
-     *  TWO HANDED: sword2h axe2h mace2h bow crossbow
-     *  COMMON: 1h_l 1h_r 2h all_l all_r all
-     * 
-     *  -- Actor Race --
-     *  a_human
-     *  human
-     *  bear giant falmer hag cat spriggan centurion
-     *  dragon troll wolf draugr chaurus(hunter) gargoyle
-     *  boar riekling scrib lurker ballista vamplord werewolf
-     * 
-     *  -- Positioning --
-     *  front back left right : relative to victim's orientation
-     * 
-     *  -- Misc --
-     *  decap: decapitation
-     *  adv: advancing
-     *  sneak: sneaking killmove
-     *  bleed: bleedout execution
-     *  a_/v_player: player only
-     */
-    StrSet                tags;
-    std::optional<StrSet> custom_tags = std::nullopt;
-    inline StrSet&        getTags() { return custom_tags.has_value() ? custom_tags.value() : tags; }
-    inline const StrSet&  getTags() const { return getTags(); }
+private:
+    StrMap<StrSet> tags_map        = {};
+    StrMap<StrSet> custom_tags_map = {};
 
-    void parse_toml_array(const toml::array& arr, bool is_custom = false);
-
-    void play(RE::Actor* attacker, RE::Actor* victim);
-    void testPlay(float max_range = 25); // play with player and a near target
-};
-
-struct AnimEntryManager
-{
-    static AnimEntryManager* getSingleton()
+public:
+    static AnimManager* getSingleton()
     {
-        static AnimEntryManager manager;
+        static AnimManager manager;
         return std::addressof(manager);
     }
 
-    void            loadAllEntryFiles();
-    void            loadSingleEntryFile(fs::path dir);
-    inline fs::path getDefaultCustomFilePath() { return fs::path(plugin_dir) / fs::path(config_dir) / fs::path(anim_dir) / fs::path(anim_custom_dir) / fs::path(anim_custom_def); }
-    void            loadCustomFile(fs::path dir); // Could merge with loadSingleEntryFile
-    void            saveCustomFile(fs::path dir);
-    void            clearCustomTags();
+    bool loadAnims();
 
-    inline void initialize()
-    {
-        loadAllEntryFiles();
-        loadCustomFile(getDefaultCustomFilePath());
-    }
-
-    StrMap<AnimEntry> anim_dict;
+    std::vector<std::string_view> listAnims(std::string_view filter_str = "", int filter_mode = 0);
+    inline bool                   hasCustomTags(std::string_view edid) { return custom_tags_map.contains(edid); };
+    const StrSet*                 getTags(std::string_view edid);
+    bool                          setTags(std::string_view edid, const StrSet& tags);
+    inline void                   clearTags(std::string_view edid) { custom_tags_map.erase(edid); }
+    inline void                   clearTags() { custom_tags_map.clear(); }
 };
+
 } // namespace kaputt

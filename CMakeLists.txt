@@ -22,25 +22,19 @@ configure_file(
 
 set(headers
         src/re.h
-        src/utils.h
         src/cathub.h
-        src/animation.h
         src/menu.h
-        src/rules.h
-        src/filter.h
-        
-        src/extern/imgui_stdlib.h)
+        src/utils.h
+        src/animation.h
+        src/rule.h)
 
 set(sources
         src/re.cpp
-        src/utils.cpp
         src/main.cpp
-        src/animation.cpp
         src/menu.cpp
-        src/rules.cpp
-        src/filter.cpp
-
-        src/extern/imgui_stdlib.cpp
+        src/utils.cpp
+        src/animation.cpp
+        src/rule.cpp
 
         ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 
@@ -55,7 +49,7 @@ source_group(
 ########################################################################################################################
 find_package(CommonLibSSE CONFIG REQUIRED)
 find_package(imgui REQUIRED CONFIG)
-find_package(robin_hood CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 find_path(ARTICUNO_INCLUDE_DIRS "articuno/articuno.h")
 
 add_commonlibsse_plugin(${PROJECT_NAME} SOURCES ${headers} ${sources})
@@ -75,7 +69,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
         imgui::imgui
-        robin_hood::robin_hood)
+        nlohmann_json::nlohmann_json)
 
 target_precompile_headers(${PROJECT_NAME}
         PRIVATE

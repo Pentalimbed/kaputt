@@ -14,8 +14,7 @@
                 "commonlibsse-ng",
                 "pcg",
                 "imgui",
-                "tomlplusplus",
-                "robin-hood-hashing"
+                "nlohmann-json"
             ]
         }
     },

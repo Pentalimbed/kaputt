@@ -1,9 +1,11 @@
 #include "menu.h"
+
+#include "re.h"
+#include "utils.h"
 #include "animation.h"
-#include "filter.h"
 
 #include <imgui.h>
-#include "extern/imgui_stdlib.h"
+#include <imgui_stdlib.h>
 
 namespace kaputt
 {
@@ -15,301 +17,13 @@ void               setStatusMessage(std::string_view msg)
     status_msg = msg;
 }
 
-std::optional<std::string_view> pickARulePopupContent()
-{
-    for (auto name : Rule::listRules())
-        if (ImGui::Selectable(name.data()))
-            return name;
-    return std::nullopt;
-}
-
-int filterFilename(ImGuiInputTextCallbackData* data)
-{
-    if (data->EventChar < 256 && (isalnum((char)data->EventChar) || ((char)data->EventChar == '_')))
-        return 0;
-    return 1;
-}
-
-
-void drawFilterMenu()
-{
-    static size_t      selected_tagexp_idx = INT64_MAX;
-    static size_t      selected_tagger_idx = INT64_MAX;
-    static std::string filter_save_name    = "default";
-    static std::string filter_load_name    = "default";
-
-    auto  filter_pipeline = FilterPipeline::getSingleton();
-    auto& tagexp_list     = filter_pipeline->tagexp_list;
-    auto& tagger_list     = filter_pipeline->tagger_list;
-
-    // File operations
-    if (ImGui::BeginTable("io", 3))
-    {
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Save Filter", {-FLT_MIN, 0.f}))
-        {
-            filter_pipeline->saveDefaultFile();
-            setStatusMessage("Filter saved to default.toml");
-        }
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Save Filter As...", {-FLT_MIN, 0.f}))
-            ImGui::OpenPopup("save filter");
-        if (ImGui::BeginPopup("save filter"))
-        {
-            if (ImGui::InputText("Press Enter", &filter_save_name, ImGuiInputTextFlags_EnterReturnsTrue, filterFilename))
-            {
-                setStatusMessage(
-                    filter_pipeline->saveFile(fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir) / fs::path(filter_save_name + ".toml")) ?
-                        "Filter saved as " + filter_save_name :
-                        "Something went wrong while saving " + filter_save_name + ". Please check the log.");
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Load Filter From...", {-FLT_MIN, 0.f}))
-            ImGui::OpenPopup("load filter");
-        if (ImGui::BeginPopup("load filter"))
-        {
-            bool has_one_selected;
-            for (auto const& dir_entry : fs::directory_iterator{fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir)})
-                if (dir_entry.is_regular_file())
-                    if (auto file_path = dir_entry.path(); file_path.extension() == ".toml")
-                    {
-                        bool selected = file_path.stem() == filter_load_name;
-                        if (selected)
-                            has_one_selected = true;
-                        if (ImGui::Selectable(file_path.stem().string().c_str(), selected, ImGuiSelectableFlags_DontClosePopups))
-                            filter_load_name = file_path.stem().string();
-                    }
-
-            ImGui::Separator();
-
-            if (!has_one_selected)
-                ImGui::BeginDisabled();
-
-            if (ImGui::Button("Overwrite"))
-            {
-                setStatusMessage(
-                    filter_pipeline->loadFile(fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir) / fs::path(filter_load_name + ".toml")) ?
-                        "Loaded filter preset " + filter_load_name :
-                        "Something went wrong while loading " + filter_load_name + ". Please check the log.");
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Append"))
-            {
-                setStatusMessage(
-                    filter_pipeline->loadFile(fs::path(plugin_dir) / fs::path(config_dir) / fs::path(filter_dir) / fs::path(filter_load_name + ".toml"), true) ?
-                        "Loaded filter preset " + filter_load_name :
-                        "Something went wrong while loading " + filter_load_name + ". Please check the log.");
-                ImGui::CloseCurrentPopup();
-            }
-            if (!has_one_selected)
-                ImGui::EndDisabled();
-
-            ImGui::EndPopup();
-        }
-
-        ImGui::EndTable();
-    }
-    ImGui::Separator();
-
-    // Tag Expansions
-    if (ImGui::BeginTable("tagexp config", 3))
-    {
-        ImGui::TableNextColumn();
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Tag Expansion");
-        ImGui::AlignTextToFramePadding();
-        ImGui::SameLine();
-        ImGui::TextDisabled("[?]");
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("If an animation has the tag on the left, then all tags on the right are provided.\n"
-                              "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.\n"
-                              "Click the '->' to select the item for removal. Duplicate items will be removed after save and reload.");
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
-            tagexp_list.push_back({});
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Remove", {-FLT_MIN, 0.f}) && (selected_tagexp_idx < tagexp_list.size()))
-            tagexp_list.erase(tagexp_list.begin() + selected_tagexp_idx);
-
-        ImGui::EndTable();
-    }
-
-    if (ImGui::BeginTable("tagexp", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
-                          {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
-    {
-        ImGui::TableSetupColumn("from", ImGuiTableColumnFlags_WidthStretch, 0.2);
-        ImGui::TableSetupColumn("arrow", ImGuiTableColumnFlags_WidthStretch, 0.05);
-        ImGui::TableSetupColumn("to", ImGuiTableColumnFlags_WidthStretch, 0.75);
-
-        ImGuiListClipper clipper;
-        clipper.Begin(tagexp_list.size());
-        while (clipper.Step())
-            for (int row_n = clipper.DisplayStart; row_n < clipper.DisplayEnd; row_n++)
-            {
-                auto& tagexp = tagexp_list[row_n];
-
-                ImGui::PushID(row_n);
-
-                ImGui::TableNextColumn();
-                ImGui::SetNextItemWidth(-FLT_MIN);
-                ImGui::InputText("##from", &tagexp.from);
-
-                ImGui::TableNextColumn();
-                ImGui::SetNextItemWidth(-FLT_MIN);
-                if (ImGui::Selectable("->", selected_tagexp_idx == row_n))
-                    selected_tagexp_idx = row_n;
-
-                ImGui::TableNextColumn();
-                ImGui::SetNextItemWidth(-FLT_MIN);
-                drawTagsInputText("##to", tagexp.to);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Press Enter to apply.\n"
-                                      "The tags are sorted and seperated by SPACE.");
-
-                ImGui::PopID();
-            }
-
-        ImGui::EndTable();
-    }
-
-    // Taggers
-    if (ImGui::BeginTable("tagger config", 5))
-    {
-        ImGui::TableNextColumn();
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Tagging Rules");
-        ImGui::SameLine();
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextDisabled("[?]");
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Each rule, if condition is met, will provide some required tags and banned tags.\n"
-                              "An animation can be selected if it has all required tags and none of banned tags.");
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
-            ImGui::OpenPopup("Pick A Rule");
-        if (ImGui::BeginPopup("Pick A Rule"))
-        {
-            auto result = pickARulePopupContent();
-            if (result.has_value())
-            {
-                tagger_list.push_back({});
-                tagger_list.back().rule = Rule::getRule(result.value());
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Remove", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size()))
-            tagger_list.erase(tagger_list.begin() + selected_tagger_idx);
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Move Up", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size()) && (selected_tagger_idx > 0))
-            std::swap(tagger_list[selected_tagger_idx], tagger_list[selected_tagger_idx - 1]), --selected_tagger_idx;
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Move Down", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size() - 1))
-            std::swap(tagger_list[selected_tagger_idx], tagger_list[selected_tagger_idx + 1]), ++selected_tagger_idx;
-
-        ImGui::EndTable();
-    }
-
-    if (ImGui::BeginTable("tagger", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY))
-    {
-        ImGui::TableSetupColumn("Rule", ImGuiTableColumnFlags_WidthStretch, 0.4);
-        ImGui::TableSetupColumn("Parameters", ImGuiTableColumnFlags_WidthStretch, 0.3);
-        ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.3);
-        ImGui::TableHeadersRow();
-
-        size_t count = 0;
-        for (auto& tagger : tagger_list)
-        {
-            ImGui::PushID(count);
-
-            ImGui::TableNextColumn();
-            ImGui::AlignTextToFramePadding();
-            ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f});
-            if (ImGui::Selectable(tagger.rule->getName().data(), selected_tagger_idx == count))
-                selected_tagger_idx = count;
-            ImGui::PopStyleColor();
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip(tagger.rule->getHint().data());
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::InputTextWithHint("##", "Description", &tagger.comment);
-
-            ImGui::TableNextColumn();
-            tagger.rule->drawParams();
-
-            ImGui::TableNextColumn();
-            ImGui::Checkbox("If True", &tagger.enable_true);
-            if (tagger.enable_true)
-            {
-                ImGui::PushID(1);
-                drawTagsInputText("Require", tagger.true_tags.required_tags);
-                drawTagsInputText("Ban", tagger.true_tags.banned_tags);
-                ImGui::PopID();
-            }
-            ImGui::Checkbox("If False", &tagger.enable_false);
-            if (tagger.enable_false)
-            {
-                ImGui::PushID(0);
-                drawTagsInputText("Require", tagger.false_tags.required_tags);
-                drawTagsInputText("Ban", tagger.false_tags.banned_tags);
-                ImGui::PopID();
-            }
-
-            ImGui::PopID();
-            ++count;
-        }
-
-        ImGui::EndTable();
-    }
-}
-
 void drawAnimationMenu()
 {
     static std::string         filter_text = {};
     static ImGuiTableSortSpecs sort_specs  = {};
     static int                 filter_mode = 0; // 0 None 1 ID 2 Tags
 
-    auto anim_manager = AnimEntryManager::getSingleton();
-
-    // file operation
-    if (ImGui::BeginTable("filetab", 3))
-    {
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Save Custom Tags", {-FLT_MIN, 0.f}))
-        {
-            anim_manager->saveCustomFile(anim_manager->getDefaultCustomFilePath());
-            setStatusMessage("Custom tags saved!");
-        }
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Reload Custom Tags", {-FLT_MIN, 0.f}))
-        {
-            anim_manager->loadCustomFile(anim_manager->getDefaultCustomFilePath());
-            setStatusMessage("Custom tags reloaded!");
-        }
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Clear Custom Tags", {-FLT_MIN, 0.f}))
-        {
-            anim_manager->clearCustomTags();
-            setStatusMessage("Custom tags cleared!");
-        }
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Remember to save to file.");
-
-        ImGui::EndTable();
-    }
-    ImGui::Separator();
+    auto anim_manager = AnimManager::getSingleton();
 
     // filters
     ImGui::InputText("Filter by", &filter_text);
@@ -337,36 +51,25 @@ void drawAnimationMenu()
         ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.6);
         ImGui::TableHeadersRow();
 
-        // filter
-        std::vector<AnimEntry*> anim_list;
-        for (auto& [edid, anim] : anim_manager->anim_dict)
-        {
-            if ((filter_mode == 1) && !edid.contains(filter_text)) continue;
-            if ((filter_mode == 2) &&
-                std::ranges::none_of(splitTags(filter_text), [&](const std::string& tag) { return anim.getTags().contains(tag); }))
-                continue;
-            anim_list.push_back(&anim);
-        }
-        // sort
-        std::ranges::sort(anim_list, {}, &AnimEntry::editor_id);
+        auto anim_list = anim_manager->listAnims(filter_text, filter_mode);
+        // std::ranges::sort(anim_list, {}, &AnimEntry::editor_id);
 
         ImGuiListClipper clipper;
         clipper.Begin(anim_list.size());
         while (clipper.Step())
             for (int row_n = clipper.DisplayStart; row_n < clipper.DisplayEnd; row_n++)
             {
-                auto& anim = *anim_list[row_n];
-                auto& edid = anim.editor_id;
+                auto edid = anim_list[row_n];
 
-                ImGui::PushID(edid.c_str());
+                ImGui::PushID(edid.data());
 
                 ImGui::TableNextColumn();
                 ImGui::AlignTextToFramePadding();
-                if (anim.custom_tags.has_value())
+                if (anim_manager->hasCustomTags(edid))
                     ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f}); // indicate custom tags
-                if (ImGui::Selectable(edid.c_str(), false))
-                    anim.testPlay();
-                if (anim.custom_tags.has_value())
+                if (ImGui::Selectable(edid.data(), false))
+                    testPlayPairedIdle(RE::TESForm::LookupByEditorID<RE::TESIdleForm>(edid));
+                if (anim_manager->hasCustomTags(edid))
                     ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("Click to test it on the nearest NPC.\n"
@@ -374,14 +77,14 @@ void drawAnimationMenu()
                                       "The conditions are not checked. So be wary.");
 
                 ImGui::TableNextColumn();
-                auto tags_str = joinTags(anim.getTags());
+                auto tags_str = joinTags(*anim_manager->getTags(edid));
                 ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::InputText("##", &tags_str, ImGuiInputTextFlags_EnterReturnsTrue))
                 {
                     if (tags_str.empty())
-                        anim.custom_tags.reset();
+                        anim_manager->clearTags(edid);
                     else
-                        anim.custom_tags = splitTags(tags_str);
+                        anim_manager->setTags(edid, splitTags(tags_str));
                 }
 
                 if (ImGui::IsItemHovered())
@@ -399,11 +102,33 @@ void drawAnimationMenu()
 
 void drawCatMenu()
 {
-    ImGui::ShowDemoWindow();
+    // ImGui::ShowDemoWindow();
 
     if (ImGui::Begin("Kaputt Config Menu", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
         ImGui::SetWindowSize({600, 600}, ImGuiCond_FirstUseEver);
+
+        if (ImGui::BeginTable("fileops", 4))
+        {
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted("Config:");
+
+            ImGui::TableNextColumn();
+            if (ImGui::Button("Save", {-FLT_MIN, 0.f}))
+                ;
+
+            ImGui::TableNextColumn();
+            if (ImGui::Button("Save As...", {-FLT_MIN, 0.f}))
+                ;
+
+            ImGui::TableNextColumn();
+            if (ImGui::Button("Load...", {-FLT_MIN, 0.f}))
+                ;
+            ImGui::EndTable();
+        }
+
+        ImGui::Separator();
 
         ImGui::BeginChild("main", {0.f, -ImGui::GetFontSize() - 2.f});
         if (ImGui::BeginTabBar("##"))
@@ -412,7 +137,7 @@ void drawCatMenu()
             if (ImGui::BeginTabItem("Trigger")) { ImGui::EndTabItem(); }
             if (ImGui::BeginTabItem("Filter"))
             {
-                drawFilterMenu();
+                // drawFilterMenu();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Animation"))

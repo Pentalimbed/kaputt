@@ -1,11 +1,11 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "animation.h"
-#include "filter.h"
+// #include "filter.h"
 #include "menu.h"
 #include "cathub.h"
 
-// #define DBGMSG
+#define DBGMSG
 
 namespace kaputt
 {
@@ -57,8 +57,9 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
         case SKSE::MessagingInterface::kDataLoaded:
             logger::info("Game: data loaded");
 
-            AnimEntryManager::getSingleton()->initialize();
-            FilterPipeline::getSingleton()->loadDefaultFile();
+            AnimManager::getSingleton()->loadAnims();
+            // AnimEntryManager::getSingleton()->initialize();
+            // FilterPipeline::getSingleton()->loadDefaultFile();
 
             integrateCatHub(); // Cathub
             break;

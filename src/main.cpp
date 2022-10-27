@@ -4,6 +4,7 @@
 // #include "filter.h"
 #include "menu.h"
 #include "cathub.h"
+#include "re.h"
 
 #define DBGMSG
 
@@ -60,6 +61,9 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
             AnimManager::getSingleton()->loadAnims();
             // AnimEntryManager::getSingleton()->initialize();
             // FilterPipeline::getSingleton()->loadDefaultFile();
+
+            logger::info("Installing hook");
+            // stl::write_thunk_call<ProcessHitHook>();
 
             integrateCatHub(); // Cathub
             break;

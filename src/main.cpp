@@ -1,7 +1,6 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
-#include "animation.h"
-// #include "filter.h"
+#include "kaputt.h"
 #include "menu.h"
 #include "cathub.h"
 #include "re.h"
@@ -58,12 +57,11 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
         case SKSE::MessagingInterface::kDataLoaded:
             logger::info("Game: data loaded");
 
-            AnimManager::getSingleton()->loadAnims();
-            // AnimEntryManager::getSingleton()->initialize();
-            // FilterPipeline::getSingleton()->loadDefaultFile();
-
             logger::info("Installing hook");
             // stl::write_thunk_call<ProcessHitHook>();
+
+            if (!Kaputt::getSingleton()->init())
+                setStatusMessage("Something went wrong during Kaputt initialization. Plugin is not disabled but you may check the log.");
 
             integrateCatHub(); // Cathub
             break;

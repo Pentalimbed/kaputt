@@ -16,22 +16,18 @@ std::vector<std::string_view> AnimManager::listAnims(std::string_view filter_str
     {
         if ((filter_mode == 1) && !edid.contains(filter_str))
             continue;
-        if ((filter_mode == 2) && !std::ranges::all_of(splitTags(filter_str), [&](const std::string& tag) { return getTags(edid)->contains(tag); }))
+        if ((filter_mode == 2) && !std::ranges::all_of(splitTags(filter_str), [&](const std::string& tag) { return getTags(edid).contains(tag); }))
             continue;
         retval.push_back(edid);
     }
     return retval;
 }
 
-const StrSet* AnimManager::getTags(std::string_view edid)
+const StrSet& AnimManager::getTags(std::string_view edid)
 {
-    if (auto result_tags = tags_map.find(edid); result_tags != tags_map.end())
-    {
-        auto result_custom_tags = custom_tags_map.find(edid);
-        return (result_custom_tags == custom_tags_map.end()) ? &result_tags->second : &result_custom_tags->second;
-    }
-    else
-        return nullptr;
+    auto result_tags        = tags_map.find(edid);
+    auto result_custom_tags = custom_tags_map.find(edid);
+    return (result_custom_tags == custom_tags_map.end()) ? result_tags->second : result_custom_tags->second;
 }
 
 bool AnimManager::setTags(std::string_view edid, const StrSet& tags)

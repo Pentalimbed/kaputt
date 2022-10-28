@@ -1,24 +1,39 @@
 #pragma once
 
-#include "kaputtAPI.h"
-#include "rule.h"
+#include "filter.h"
+#include "animation.h"
 
 namespace kaputt
 {
-class Kaputt : public KaputtAPI
+class Kaputt
 {
 private:
     std::atomic_bool ready;
 
-public:
-    inline void         set_ready(bool val = true) { ready.store(val); }
-    virtual inline bool is_ready() { return ready.load(); }
+    std::vector<RuleInfo> preconds = {};
 
-    virtual bool precondition(const RE::Actor* attacker, const RE::Actor* victim);
+public:
+    AnimManager    anim_manager;
+    FilterPipeline filter;
+
+    static Kaputt* getSingleton()
+    {
+        static Kaputt kaputt;
+        return std::addressof(kaputt);
+    }
+    bool                init();
+    virtual inline bool isReady() { return ready.load(); }
+
+    virtual inline bool precondition(const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        return std::ranges::all_of(preconds, [=](RuleInfo& rule) { return rule.enabled == rule.check(attacker, victim); });
+    }
     virtual bool submit(
-        RE::Actor*                          attacker,
-        RE::Actor*                          victim,
-        std::set<std::string, std::less<>>* required_tags = nullptr,
-        std::set<std::string, std::less<>>* banned_tags   = nullptr);
+        RE::Actor*          attacker,
+        RE::Actor*          victim,
+        const TaggerOutput& extra_tags = {});
+
+    bool loadConfig(std::string_view dir);
+    bool saveConfig(std::string_view dir);
 };
 } // namespace kaputt

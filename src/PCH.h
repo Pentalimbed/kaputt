@@ -31,7 +31,7 @@ using StrSet = std::set<std::string, std::less<>>;
 
 namespace kaputt
 {
-constexpr auto def_config_path = R"(Data\SKSE\Plugins\kaputt.toml)";
+constexpr auto def_config_path = R"(Data\SKSE\Plugins\kaputt.json)";
 constexpr auto config_dir      = R"(Data\SKSE\Plugins\kaputt\configs)";
 constexpr auto anim_dir        = R"(Data\SKSE\Plugins\kaputt\anims)";
 } // namespace kaputt

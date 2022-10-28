@@ -1,6 +1,5 @@
 #pragma once
 
-#include "utils.h"
 #include "rule.h"
 
 namespace kaputt
@@ -54,19 +53,13 @@ private:
     StrMap<StrSet>      tagexp_list;
 
 public:
-    static FilterPipeline* getSingleton()
-    {
-        static FilterPipeline pipe;
-        return std::addressof(pipe);
-    }
-
     inline void clear()
     {
         tagger_list.clear();
         tagexp_list.clear();
     }
 
-    void filter(std::vector<std::string_view>& anims, const RE::Actor* attacker, const RE::Actor* victim) const;
+    void filter(std::vector<std::string_view>& anims, const RE::Actor* attacker, const RE::Actor* victim, const TaggerOutput& extra_tags = {}) const;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(FilterPipeline, tagger_list, tagexp_list)
 };

@@ -2,8 +2,10 @@
 
 #include "re.h"
 #include "utils.h"
-#include "animation.h"
-#include "filter.h"
+#include "kaputt.h"
+
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -26,13 +28,25 @@ std::optional<std::string_view> pickARulePopupContent()
     return std::nullopt;
 }
 
+int filterFilename(ImGuiInputTextCallbackData* data)
+{
+    if (data->EventChar < 256 && (isalnum((char)data->EventChar) || ((char)data->EventChar == '_')))
+        return 0;
+    return 1;
+}
+
+
+
+
+
+
 void drawFilterMenu()
 {
     static size_t selected_tagger_idx = INT64_MAX;
 
-    auto  filter_pipeline = FilterPipeline::getSingleton();
-    auto& tagexp_list     = filter_pipeline->tagexp_list;
-    auto& tagger_list     = filter_pipeline->tagger_list;
+    auto& filter      = Kaputt::getSingleton()->filter;
+    auto& tagexp_list = filter.tagexp_list;
+    auto& tagger_list = filter.tagger_list;
 
     // Tag Expansions
     if (ImGui::BeginTable("tagexp config", 2))
@@ -209,7 +223,7 @@ void drawAnimationMenu()
     static ImGuiTableSortSpecs sort_specs  = {};
     static int                 filter_mode = 0; // 0 None 1 ID 2 Tags
 
-    auto anim_manager = AnimManager::getSingleton();
+    auto& anim_manager = Kaputt::getSingleton()->anim_manager;
 
     // filters
     ImGui::InputText("Filter by", &filter_text);
@@ -237,7 +251,7 @@ void drawAnimationMenu()
         ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.6);
         ImGui::TableHeadersRow();
 
-        auto anim_list = anim_manager->listAnims(filter_text, filter_mode);
+        auto anim_list = anim_manager.listAnims(filter_text, filter_mode);
         // std::ranges::sort(anim_list, {}, &AnimEntry::editor_id);
 
         ImGuiListClipper clipper;
@@ -251,11 +265,11 @@ void drawAnimationMenu()
 
                 ImGui::TableNextColumn();
                 ImGui::AlignTextToFramePadding();
-                if (anim_manager->hasCustomTags(edid))
+                if (anim_manager.hasCustomTags(edid))
                     ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f}); // indicate custom tags
                 if (ImGui::Selectable(edid.data(), false))
                     testPlayPairedIdle(RE::TESForm::LookupByEditorID<RE::TESIdleForm>(edid));
-                if (anim_manager->hasCustomTags(edid))
+                if (anim_manager.hasCustomTags(edid))
                     ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("Click to test it on the nearest NPC.\n"
@@ -263,14 +277,14 @@ void drawAnimationMenu()
                                       "The conditions are not checked. So be wary.");
 
                 ImGui::TableNextColumn();
-                auto tags_str = joinTags(*anim_manager->getTags(edid));
+                auto tags_str = joinTags(anim_manager.getTags(edid));
                 ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::InputText("##", &tags_str, ImGuiInputTextFlags_EnterReturnsTrue))
                 {
                     if (tags_str.empty())
-                        anim_manager->clearTags(edid);
+                        anim_manager.clearTags(edid);
                     else
-                        anim_manager->setTags(edid, splitTags(tags_str));
+                        anim_manager.setTags(edid, splitTags(tags_str));
                 }
 
                 if (ImGui::IsItemHovered())
@@ -345,6 +359,8 @@ void drawCatMenu()
     ImGui::PushStyleColor(ImGuiCol_NavWindowingDimBg, ImVec4(0.80f, 0.80f, 0.80f, 0.20f));
     ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0.80f, 0.80f, 0.80f, 0.35f));
 
+    auto kaputt = Kaputt::getSingleton();
+
     if (ImGui::Begin("Kaputt Config Menu", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
         ImGui::SetWindowSize({600, 600}, ImGuiCond_FirstUseEver);
@@ -357,15 +373,56 @@ void drawCatMenu()
 
             ImGui::TableNextColumn();
             if (ImGui::Button("Save", {-FLT_MIN, 0.f}))
-                ;
+                setStatusMessage(kaputt->saveConfig(def_config_path) ?
+                                     fmt::format("Config saved to {}", def_config_path) :
+                                     "Something went wrong while saving. Please check the log.");
+
 
             ImGui::TableNextColumn();
             if (ImGui::Button("Save As...", {-FLT_MIN, 0.f}))
-                ;
+                ImGui::OpenPopup("save config");
+            if (ImGui::BeginPopup("save config"))
+            {
+                static std::string save_name = {};
+                if (ImGui::InputText("Press Enter", &save_name, ImGuiInputTextFlags_EnterReturnsTrue, filterFilename))
+                {
+                    setStatusMessage(
+                        kaputt->saveConfig(config_dir + "\\"s + save_name + ".json") ?
+                            "Filter saved as " + save_name :
+                            "Something went wrong while saving " + save_name + ". Please check the log.");
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
 
             ImGui::TableNextColumn();
             if (ImGui::Button("Load...", {-FLT_MIN, 0.f}))
-                ;
+                ImGui::OpenPopup("load config");
+            if (ImGui::BeginPopup("load config"))
+            {
+                static std::string load_name  = {};
+                bool               has_preset = false;
+                for (auto const& dir_entry : fs::directory_iterator{fs::path(config_dir)})
+                    if (dir_entry.is_regular_file())
+                        if (auto file_path = dir_entry.path(); file_path.extension() == ".json")
+                        {
+                            has_preset = true;
+                            if (ImGui::Selectable(file_path.stem().string().c_str()))
+                            {
+                                setStatusMessage(
+                                    kaputt->loadConfig(file_path.string()) ?
+                                        "Loaded filter preset " + load_name :
+                                        "Something went wrong while loading " + load_name + ". Please check the log.");
+                                ImGui::CloseCurrentPopup();
+                            }
+                        }
+
+                if (!has_preset)
+                    ImGui::TextDisabled("No presets found.");
+
+                ImGui::EndPopup();
+            }
+
             ImGui::EndTable();
         }
 

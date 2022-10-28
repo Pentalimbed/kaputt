@@ -3,6 +3,7 @@
 #include "re.h"
 #include "utils.h"
 #include "animation.h"
+#include "filter.h"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -15,6 +16,189 @@ void               setStatusMessage(std::string_view msg)
 {
     std::scoped_lock l(status_msg_mutex);
     status_msg = msg;
+}
+
+std::optional<std::string_view> pickARulePopupContent()
+{
+    for (auto& [name, _] : getRule())
+        if (ImGui::Selectable(name.data()))
+            return name;
+    return std::nullopt;
+}
+
+void drawFilterMenu()
+{
+    static size_t selected_tagger_idx = INT64_MAX;
+
+    auto  filter_pipeline = FilterPipeline::getSingleton();
+    auto& tagexp_list     = filter_pipeline->tagexp_list;
+    auto& tagger_list     = filter_pipeline->tagger_list;
+
+    // Tag Expansions
+    if (ImGui::BeginTable("tagexp config", 2))
+    {
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Tag Expansion");
+        ImGui::AlignTextToFramePadding();
+        ImGui::SameLine();
+        ImGui::TextDisabled("[?]");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("If an animation has the tag on the left, then all tags on the right are provided.\n"
+                              "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.\n"
+                              "Click the '->' to select the item for removal. Duplicate items will be removed after save and reload.");
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
+            tagexp_list.try_emplace("from", StrSet{"to"});
+
+        ImGui::EndTable();
+    }
+
+    if (ImGui::BeginTable("tagexp", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
+                          {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
+    {
+        ImGui::TableSetupColumn("from", ImGuiTableColumnFlags_WidthStretch, 0.2);
+        ImGui::TableSetupColumn("arrow", ImGuiTableColumnFlags_WidthStretch, 0.05);
+        ImGui::TableSetupColumn("to", ImGuiTableColumnFlags_WidthStretch, 0.75);
+
+        std::string swap_from = {}, swap_to = {};
+        for (auto& [from, to] : tagexp_list)
+        {
+            ImGui::PushID(from.c_str());
+
+            ImGui::TableNextColumn();
+            std::string temp_from = from;
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::InputText("##from", &temp_from, ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                swap_from = from;
+                swap_to   = temp_from;
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Press Enter to apply. It will be sorted.\n"
+                                  "If the tag already exists, nothing will happen.\n"
+                                  "Leave empty and press Enter to delete the item.");
+
+            ImGui::TableNextColumn();
+            ImGui::Text("->");
+
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            drawTagsInputText("##to", to);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Press Enter to apply.\n"
+                                  "The tags are sorted and seperated by SPACE.");
+
+            ImGui::PopID();
+        }
+        if (!swap_from.empty() && !tagexp_list.contains(swap_to))
+        {
+            if (swap_to.empty())
+                tagexp_list.erase(swap_from);
+            else
+            {
+                auto node  = tagexp_list.extract(swap_from);
+                node.key() = swap_to;
+                tagexp_list.insert(std::move(node));
+            }
+        }
+
+        ImGui::EndTable();
+    }
+
+    // Taggers
+    if (ImGui::BeginTable("tagger config", 5))
+    {
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Tagging Rules");
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("[?]");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Each rule, if condition is met, will provide some required tags and banned tags.\n"
+                              "An animation can be selected if it has all required tags and none of banned tags.");
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
+            ImGui::OpenPopup("Pick A Rule");
+        if (ImGui::BeginPopup("Pick A Rule"))
+        {
+            auto result = pickARulePopupContent();
+            if (result.has_value())
+            {
+                tagger_list.push_back(Tagger{.rule = {result.value()}});
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Remove", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size()))
+            tagger_list.erase(tagger_list.begin() + selected_tagger_idx);
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Move Up", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size()) && (selected_tagger_idx > 0))
+            std::swap(tagger_list[selected_tagger_idx], tagger_list[selected_tagger_idx - 1]), --selected_tagger_idx;
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Move Down", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size() - 1))
+            std::swap(tagger_list[selected_tagger_idx], tagger_list[selected_tagger_idx + 1]), ++selected_tagger_idx;
+
+        ImGui::EndTable();
+    }
+
+    if (ImGui::BeginTable("tagger", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY))
+    {
+        ImGui::TableSetupColumn("Rule", ImGuiTableColumnFlags_WidthStretch, 0.4);
+        ImGui::TableSetupColumn("Parameters", ImGuiTableColumnFlags_WidthStretch, 0.3);
+        ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.3);
+        ImGui::TableHeadersRow();
+
+        size_t count = 0;
+        for (auto& tagger : tagger_list)
+        {
+            ImGui::PushID(count);
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f});
+            if (ImGui::Selectable(tagger.rule.type.c_str(), selected_tagger_idx == count))
+                selected_tagger_idx = count;
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip(getRule().at(tagger.rule.type)->getHint().data());
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::InputTextWithHint("##", "Comment", &tagger.rule.comment);
+
+            ImGui::TableNextColumn();
+            tagger.rule.drawParams();
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("If True", &tagger.enable_true);
+            if (tagger.enable_true)
+            {
+                ImGui::PushID(1);
+                drawTagsInputText("Require", tagger.true_tags.required_tags);
+                drawTagsInputText("Ban", tagger.true_tags.banned_tags);
+                ImGui::PopID();
+            }
+            ImGui::Checkbox("If False", &tagger.enable_false);
+            if (tagger.enable_false)
+            {
+                ImGui::PushID(0);
+                drawTagsInputText("Require", tagger.false_tags.required_tags);
+                drawTagsInputText("Ban", tagger.false_tags.banned_tags);
+                ImGui::PopID();
+            }
+
+            ImGui::PopID();
+            ++count;
+        }
+
+        ImGui::EndTable();
+    }
 }
 
 void drawAnimationMenu()
@@ -137,7 +321,7 @@ void drawCatMenu()
             if (ImGui::BeginTabItem("Trigger")) { ImGui::EndTabItem(); }
             if (ImGui::BeginTabItem("Filter"))
             {
-                // drawFilterMenu();
+                drawFilterMenu();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Animation"))

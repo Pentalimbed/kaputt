@@ -26,7 +26,8 @@ set(headers
         src/menu.h
         src/utils.h
         src/animation.h
-        src/rule.h)
+        src/rule.h
+        src/filter.h)
 
 set(sources
         src/re.cpp
@@ -35,6 +36,7 @@ set(sources
         src/utils.cpp
         src/animation.cpp
         src/rule.cpp
+        src/filter.cpp
 
         ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 

@@ -14,7 +14,8 @@
                 "commonlibsse-ng",
                 "pcg",
                 "imgui",
-                "nlohmann-json"
+                "nlohmann-json",
+                "effolkronium-random"
             ]
         }
     },

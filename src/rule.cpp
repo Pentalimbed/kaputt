@@ -11,9 +11,9 @@ namespace kaputt
 #define RULEITEM(type) \
     rule_map.insert_or_assign(std::string(type().getName()), std::make_unique<type>())
 
-const StrMap<std::unique_ptr<RuleBase>>& getRule(std::string_view type)
+const StrMap<std::shared_ptr<RuleBase>>& getRule()
 {
-    static StrMap<std::unique_ptr<RuleBase>> rule_map = {};
+    static StrMap<std::shared_ptr<RuleBase>> rule_map = {};
     static std::once_flag                    flag;
     std::call_once(flag, [&]() {
         RULEITEM(UnconditionalRule);
@@ -23,6 +23,7 @@ const StrMap<std::unique_ptr<RuleBase>>& getRule(std::string_view type)
         RULEITEM(EssentialRule);
         RULEITEM(AngleRule);
     });
+    return rule_map;
 }
 
 void UnconditionalRuleParams::draw() { ImGui::Checkbox(value ? "true" : "false", &value); }

@@ -1,19 +1,3 @@
-/**
- * @file rule.h
- * @author cat
- * @brief 
- * How to use:
- * 1. Get a bunch of RuleInfo;
- * 2. Find your rule by calling getRule, which returns a category of rules;
- * 3. Get the RuleBase object of your rule type, which is basically a wrapper of functions;
- * 4. Use the funcs to manipulate the params of your RuleInfo.
- * @version 0.1
- * @date 2022-10-27
- * 
- * @copyright Copyright (c) 2022
- * 
- */
-
 #pragma once
 
 #include <nlohmann/json.hpp>
@@ -145,14 +129,31 @@ struct AngleRule : Rule<AngleRuleParams>
 
 //////////////////////////////////////////////////////////////////////// CEREALIZATION
 
+const StrMap<std::shared_ptr<RuleBase>>& getRule();
+
 struct RuleInfo
 {
-    std::string type    = {};
+    std::string type    = "";
     bool        enabled = true; // for other purposes
+    std::string comment = "";
     json        params  = {};
-};
 
-const StrMap<std::unique_ptr<RuleBase>>& getRule(std::string_view type);
+    RuleInfo() = default;
+    inline RuleInfo(std::string_view type) :
+        type(type)
+    {
+        auto p_rule = getRule().find(type);
+        if (p_rule == getRule().end())
+            enabled = false;
+        else
+            params = p_rule->second->getDefaultParams();
+    }
+
+    // THESE WILL THROW
+    inline bool             check(const RE::Actor* attacker, const RE::Actor* victim) { return getRule().at(type)->check(params, attacker, victim); }
+    inline std::string_view getHint() { getRule().at(type)->getHint(); }
+    inline void             drawParams() { getRule().at(type)->drawParams(params); }
+};
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(RuleInfo, type, enabled, params)
 

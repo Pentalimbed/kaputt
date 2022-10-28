@@ -39,6 +39,100 @@ int filterFilename(ImGuiInputTextCallbackData* data)
 
 
 
+void drawTriggerMenu()
+{
+    static size_t selected_precond_idx = INT64_MAX;
+
+    auto  kaputt   = Kaputt::getSingleton();
+    auto& preconds = kaputt->preconds;
+
+    // Preconds
+    if (ImGui::BeginTable("precond config", 5))
+    {
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Preconditions");
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("[?]");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Conditions required for a killmove to happen\n");
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
+            ImGui::OpenPopup("Pick A Rule");
+        if (ImGui::BeginPopup("Pick A Rule"))
+        {
+            auto result = pickARulePopupContent();
+            if (result.has_value())
+            {
+                preconds.push_back(RuleInfo{result.value()});
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Remove", {-FLT_MIN, 0.f}) && (selected_precond_idx < preconds.size()))
+            preconds.erase(preconds.begin() + selected_precond_idx);
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Move Up", {-FLT_MIN, 0.f}) && (selected_precond_idx < preconds.size()) && (selected_precond_idx > 0))
+            std::swap(preconds[selected_precond_idx], preconds[selected_precond_idx - 1]), --selected_precond_idx;
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Move Down", {-FLT_MIN, 0.f}) && (selected_precond_idx < preconds.size() - 1))
+            std::swap(preconds[selected_precond_idx], preconds[selected_precond_idx + 1]), ++selected_precond_idx;
+
+        ImGui::EndTable();
+    }
+
+    if (ImGui::BeginTable("preconds", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
+                          {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
+    {
+        ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize());
+        ImGui::TableSetupColumn("Rule", ImGuiTableColumnFlags_WidthStretch, 0.2);
+        ImGui::TableSetupColumn("Comment", ImGuiTableColumnFlags_WidthStretch, 0.5);
+        ImGui::TableSetupColumn("Parameters", ImGuiTableColumnFlags_WidthStretch, 0.3);
+        ImGui::TableSetupColumn("##", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 3);
+        ImGui::TableSetupScrollFreeze(0, 1);
+        ImGui::TableHeadersRow();
+
+        size_t count = 0;
+        for (auto& rule : preconds)
+        {
+            ImGui::PushID(count);
+
+            ImGui::TableNextColumn();
+            ImGui::Text("%d", count + 1);
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{0.5f, 0.5f, 1.f, 1.f});
+            if (ImGui::Selectable(rule.type.c_str(), selected_precond_idx == count))
+                selected_precond_idx = count;
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip(rule.getHint().data());
+
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::InputTextWithHint("##comment", "Comment", &rule.comment);
+
+            ImGui::TableNextColumn();
+            rule.drawParams();
+
+            ImGui::TableNextColumn();
+            if (ImGui::Selectable(rule.enabled ? "=true" : "=false"))
+                rule.enabled = !rule.enabled;
+
+            ImGui::PopID();
+            ++count;
+        }
+
+        ImGui::EndTable();
+    }
+}
 
 void drawFilterMenu()
 {
@@ -115,7 +209,7 @@ void drawFilterMenu()
                 selected_tagger_idx = count;
             ImGui::PopStyleColor();
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip(getRule().at(tagger.rule.type)->getHint().data());
+                ImGui::SetTooltip(rule.getHint().data());
             ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::InputTextWithHint("##comment", "Comment", &tagger.rule.comment);
 
@@ -449,7 +543,11 @@ void drawCatMenu()
         if (ImGui::BeginTabBar("##"))
         {
             if (ImGui::BeginTabItem("General")) { ImGui::EndTabItem(); }
-            if (ImGui::BeginTabItem("Trigger")) { ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Trigger"))
+            {
+                drawTriggerMenu();
+                ImGui::EndTabItem();
+            }
             if (ImGui::BeginTabItem("Filter"))
             {
                 drawFilterMenu();

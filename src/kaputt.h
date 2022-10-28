@@ -76,6 +76,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Tagger, rule, enable_true, enable_false, true
 
 class Kaputt
 {
+    friend void drawTriggerMenu();
     friend void drawFilterMenu();
     friend void drawAnimationMenu();
 

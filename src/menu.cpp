@@ -44,82 +44,8 @@ void drawFilterMenu()
 {
     static size_t selected_tagger_idx = INT64_MAX;
 
-    auto& filter      = Kaputt::getSingleton()->filter;
-    auto& tagexp_list = filter.tagexp_list;
-    auto& tagger_list = filter.tagger_list;
-
-    // Tag Expansions
-    if (ImGui::BeginTable("tagexp config", 2))
-    {
-        ImGui::TableNextColumn();
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Tag Expansion");
-        ImGui::AlignTextToFramePadding();
-        ImGui::SameLine();
-        ImGui::TextDisabled("[?]");
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("If an animation has the tag on the left, then all tags on the right are provided.\n"
-                              "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.\n"
-                              "Click the '->' to select the item for removal. Duplicate items will be removed after save and reload.");
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
-            tagexp_list.try_emplace("from", StrSet{"to"});
-
-        ImGui::EndTable();
-    }
-
-    if (ImGui::BeginTable("tagexp", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
-                          {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
-    {
-        ImGui::TableSetupColumn("from", ImGuiTableColumnFlags_WidthStretch, 0.2);
-        ImGui::TableSetupColumn("arrow", ImGuiTableColumnFlags_WidthStretch, 0.05);
-        ImGui::TableSetupColumn("to", ImGuiTableColumnFlags_WidthStretch, 0.75);
-
-        std::string swap_from = {}, swap_to = {};
-        for (auto& [from, to] : tagexp_list)
-        {
-            ImGui::PushID(from.c_str());
-
-            ImGui::TableNextColumn();
-            std::string temp_from = from;
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            if (ImGui::InputText("##from", &temp_from, ImGuiInputTextFlags_EnterReturnsTrue))
-            {
-                swap_from = from;
-                swap_to   = temp_from;
-            }
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Press Enter to apply. It will be sorted.\n"
-                                  "If the tag already exists, nothing will happen.\n"
-                                  "Leave empty and press Enter to delete the item.");
-
-            ImGui::TableNextColumn();
-            ImGui::Text("->");
-
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            drawTagsInputText("##to", to);
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Press Enter to apply.\n"
-                                  "The tags are sorted and seperated by SPACE.");
-
-            ImGui::PopID();
-        }
-        if (!swap_from.empty() && !tagexp_list.contains(swap_to))
-        {
-            if (swap_to.empty())
-                tagexp_list.erase(swap_from);
-            else
-            {
-                auto node  = tagexp_list.extract(swap_from);
-                node.key() = swap_to;
-                tagexp_list.insert(std::move(node));
-            }
-        }
-
-        ImGui::EndTable();
-    }
+    auto  kaputt      = Kaputt::getSingleton();
+    auto& tagger_list = kaputt->tagger_list;
 
     // Taggers
     if (ImGui::BeginTable("tagger config", 5))
@@ -223,13 +149,96 @@ void drawAnimationMenu()
     static ImGuiTableSortSpecs sort_specs  = {};
     static int                 filter_mode = 0; // 0 None 1 ID 2 Tags
 
-    auto& anim_manager = Kaputt::getSingleton()->anim_manager;
+    auto  kaputt      = Kaputt::getSingleton();
+    auto& tagexp_list = kaputt->tagexp_list;
 
-    // filters
-    ImGui::InputText("Filter by", &filter_text);
-
-    if (ImGui::BeginTable("filtertab", 3))
+    // Tag Expansions
+    if (ImGui::BeginTable("tagexp config", 2))
     {
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Tag Expansion");
+        ImGui::AlignTextToFramePadding();
+        ImGui::SameLine();
+        ImGui::TextDisabled("[?]");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("If an animation has the tag on the left, then all tags on the right are provided.\n"
+                              "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.\n"
+                              "Click the '->' to select the item for removal. Duplicate items will be removed after save and reload.");
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
+            tagexp_list.try_emplace("from", StrSet{"to"});
+
+        ImGui::EndTable();
+    }
+
+    if (ImGui::BeginTable("tagexp", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
+                          {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
+    {
+        ImGui::TableSetupColumn("from", ImGuiTableColumnFlags_WidthStretch, 0.2);
+        ImGui::TableSetupColumn("arrow", ImGuiTableColumnFlags_WidthStretch, 0.05);
+        ImGui::TableSetupColumn("to", ImGuiTableColumnFlags_WidthStretch, 0.75);
+
+        std::string swap_from = {}, swap_to = {};
+        for (auto& [from, to] : tagexp_list)
+        {
+            ImGui::PushID(from.c_str());
+
+            ImGui::TableNextColumn();
+            std::string temp_from = from;
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::InputText("##from", &temp_from, ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                swap_from = from;
+                swap_to   = temp_from;
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Press Enter to apply. It will be sorted.\n"
+                                  "If the tag already exists, nothing will happen.\n"
+                                  "Leave empty and press Enter to delete the item.");
+
+            ImGui::TableNextColumn();
+            ImGui::Text("->");
+
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            drawTagsInputText("##to", to);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Press Enter to apply.\n"
+                                  "The tags are sorted and seperated by SPACE.");
+
+            ImGui::PopID();
+        }
+        if (!swap_from.empty() && !tagexp_list.contains(swap_to))
+        {
+            if (swap_to.empty())
+                tagexp_list.erase(swap_from);
+            else
+            {
+                auto node  = tagexp_list.extract(swap_from);
+                node.key() = swap_to;
+                tagexp_list.insert(std::move(node));
+            }
+        }
+
+        ImGui::EndTable();
+    }
+
+    // anim filters
+    ImGui::Text("Animation List");
+    ImGui::SameLine();
+    ImGui::Separator();
+    if (ImGui::BeginTable("filtertab", 4))
+    {
+        ImGui::TableSetupColumn("filter", ImGuiTableColumnFlags_WidthStretch, 0.5);
+        ImGui::TableSetupColumn("1", ImGuiTableColumnFlags_WidthStretch, 0.5 / 3);
+        ImGui::TableSetupColumn("2", ImGuiTableColumnFlags_WidthStretch, 0.5 / 3);
+        ImGui::TableSetupColumn("3", ImGuiTableColumnFlags_WidthStretch, 0.5 / 3);
+
+        ImGui::TableNextColumn();
+        ImGui::InputText("Filter by", &filter_text);
+
         ImGui::TableNextColumn();
         ImGui::RadioButton("None", &filter_mode, 0);
         ImGui::TableNextColumn();
@@ -251,8 +260,7 @@ void drawAnimationMenu()
         ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.6);
         ImGui::TableHeadersRow();
 
-        auto anim_list = anim_manager.listAnims(filter_text, filter_mode);
-        // std::ranges::sort(anim_list, {}, &AnimEntry::editor_id);
+        auto anim_list = kaputt->listAnims(filter_text, filter_mode);
 
         ImGuiListClipper clipper;
         clipper.Begin(anim_list.size());
@@ -265,11 +273,11 @@ void drawAnimationMenu()
 
                 ImGui::TableNextColumn();
                 ImGui::AlignTextToFramePadding();
-                if (anim_manager.hasCustomTags(edid))
+                if (kaputt->anim_custom_tags_map.contains(edid))
                     ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f}); // indicate custom tags
                 if (ImGui::Selectable(edid.data(), false))
                     testPlayPairedIdle(RE::TESForm::LookupByEditorID<RE::TESIdleForm>(edid));
-                if (anim_manager.hasCustomTags(edid))
+                if (kaputt->anim_custom_tags_map.contains(edid))
                     ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("Click to test it on the nearest NPC.\n"
@@ -277,14 +285,14 @@ void drawAnimationMenu()
                                       "The conditions are not checked. So be wary.");
 
                 ImGui::TableNextColumn();
-                auto tags_str = joinTags(anim_manager.getTags(edid));
+                auto tags_str = joinTags(kaputt->getTags(edid));
                 ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::InputText("##", &tags_str, ImGuiInputTextFlags_EnterReturnsTrue))
                 {
                     if (tags_str.empty())
-                        anim_manager.clearTags(edid);
+                        kaputt->anim_custom_tags_map.erase(edid);
                     else
-                        anim_manager.setTags(edid, splitTags(tags_str));
+                        kaputt->setTags(edid, splitTags(tags_str));
                 }
 
                 if (ImGui::IsItemHovered())
@@ -402,20 +410,22 @@ void drawCatMenu()
             {
                 static std::string load_name  = {};
                 bool               has_preset = false;
-                for (auto const& dir_entry : fs::directory_iterator{fs::path(config_dir)})
-                    if (dir_entry.is_regular_file())
-                        if (auto file_path = dir_entry.path(); file_path.extension() == ".json")
-                        {
-                            has_preset = true;
-                            if (ImGui::Selectable(file_path.stem().string().c_str()))
+
+                if (fs::exists(config_dir))
+                    for (auto const& dir_entry : fs::directory_iterator{fs::path(config_dir)})
+                        if (dir_entry.is_regular_file())
+                            if (auto file_path = dir_entry.path(); file_path.extension() == ".json")
                             {
-                                setStatusMessage(
-                                    kaputt->loadConfig(file_path.string()) ?
-                                        "Loaded filter preset " + load_name :
-                                        "Something went wrong while loading " + load_name + ". Please check the log.");
-                                ImGui::CloseCurrentPopup();
+                                has_preset = true;
+                                if (ImGui::Selectable(file_path.stem().string().c_str()))
+                                {
+                                    setStatusMessage(
+                                        kaputt->loadConfig(file_path.string()) ?
+                                            "Loaded filter preset " + load_name :
+                                            "Something went wrong while loading " + load_name + ". Please check the log.");
+                                    ImGui::CloseCurrentPopup();
+                                }
                             }
-                        }
 
                 if (!has_preset)
                     ImGui::TextDisabled("No presets found.");

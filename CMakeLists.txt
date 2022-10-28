@@ -25,9 +25,7 @@ set(headers
         src/cathub.h
         src/menu.h
         src/utils.h
-        src/animation.h
         src/rule.h
-        src/filter.h
         src/kaputtAPI.h
         src/kaputt.h)
 
@@ -36,9 +34,7 @@ set(sources
         src/main.cpp
         src/menu.cpp
         src/utils.cpp
-        src/animation.cpp
         src/rule.cpp
-        src/filter.cpp
         src/kaputt.cpp
 
         ${CMAKE_CURRENT_BINARY_DIR}/version.rc)

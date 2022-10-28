@@ -131,6 +131,7 @@ struct AngleRule : Rule<AngleRuleParams>
 
 const StrMap<std::shared_ptr<RuleBase>>& getRule();
 
+// This is for better fitting json serialization to avoid using pointers in class
 struct RuleInfo
 {
     std::string type    = "";

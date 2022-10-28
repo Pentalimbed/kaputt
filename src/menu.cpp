@@ -162,15 +162,17 @@ void drawFilterMenu()
             ImGui::PushID(count);
 
             ImGui::TableNextColumn();
+            ImGui::Checkbox("##enable", &tagger.rule.enabled);
+            ImGui::SameLine();
             ImGui::AlignTextToFramePadding();
-            ImGui::PushStyleColor(ImGuiCol_Text, {0.5f, 0.5f, 1.f, 1.f});
+            ImGui::PushStyleColor(ImGuiCol_Text, tagger.rule.enabled ? ImVec4{0.5f, 0.5f, 1.f, 1.f} : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
             if (ImGui::Selectable(tagger.rule.type.c_str(), selected_tagger_idx == count))
                 selected_tagger_idx = count;
             ImGui::PopStyleColor();
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip(getRule().at(tagger.rule.type)->getHint().data());
             ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::InputTextWithHint("##", "Comment", &tagger.rule.comment);
+            ImGui::InputTextWithHint("##comment", "Comment", &tagger.rule.comment);
 
             ImGui::TableNextColumn();
             tagger.rule.drawParams();
@@ -288,6 +290,61 @@ void drawCatMenu()
 {
     // ImGui::ShowDemoWindow();
 
+    // aiekick's style https://github.com/ocornut/imgui/issues/707#issuecomment-760219522
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TextDisabled, ImVec4(0.50f, 0.50f, 0.50f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.06f, 0.06f, 0.06f, 0.94f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.00f, 0.00f, 0.00f, 0.00f));
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.08f, 0.08f, 0.08f, 0.94f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.43f, 0.43f, 0.50f, 0.50f));
+    ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.00f, 0.00f, 0.00f, 0.00f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.44f, 0.44f, 0.44f, 0.60f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.57f, 0.57f, 0.57f, 0.70f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.76f, 0.76f, 0.76f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.04f, 0.04f, 0.04f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.16f, 0.16f, 0.16f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.00f, 0.00f, 0.00f, 0.60f));
+    ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.14f, 0.14f, 0.14f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.02f, 0.02f, 0.02f, 0.53f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(0.31f, 0.31f, 0.31f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(0.41f, 0.41f, 0.41f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(0.51f, 0.51f, 0.51f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.13f, 0.75f, 0.55f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.13f, 0.75f, 0.75f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(0.13f, 0.75f, 1.00f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.13f, 0.75f, 0.55f, 0.40f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.13f, 0.75f, 0.75f, 0.60f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.13f, 0.75f, 1.00f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.13f, 0.75f, 0.55f, 0.40f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.13f, 0.75f, 0.75f, 0.60f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.13f, 0.75f, 1.00f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.13f, 0.75f, 0.55f, 0.40f));
+    ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, ImVec4(0.13f, 0.75f, 0.75f, 0.60f));
+    ImGui::PushStyleColor(ImGuiCol_SeparatorActive, ImVec4(0.13f, 0.75f, 1.00f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_ResizeGrip, ImVec4(0.13f, 0.75f, 0.55f, 0.40f));
+    ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, ImVec4(0.13f, 0.75f, 0.75f, 0.60f));
+    ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, ImVec4(0.13f, 0.75f, 1.00f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.13f, 0.75f, 0.55f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.13f, 0.75f, 0.75f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.13f, 0.75f, 1.00f, 0.80f));
+    ImGui::PushStyleColor(ImGuiCol_TabUnfocused, ImVec4(0.18f, 0.18f, 0.18f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, ImVec4(0.36f, 0.36f, 0.36f, 0.54f));
+    ImGui::PushStyleColor(ImGuiCol_PlotLines, ImVec4(0.61f, 0.61f, 0.61f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_PlotLinesHovered, ImVec4(1.00f, 0.43f, 0.35f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.90f, 0.70f, 0.00f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogramHovered, ImVec4(1.00f, 0.60f, 0.00f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImVec4(0.19f, 0.19f, 0.20f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TableBorderStrong, ImVec4(0.31f, 0.31f, 0.35f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TableBorderLight, ImVec4(0.23f, 0.23f, 0.25f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4(0.00f, 0.00f, 0.00f, 0.00f));
+    ImGui::PushStyleColor(ImGuiCol_TableRowBgAlt, ImVec4(1.00f, 1.00f, 1.00f, 0.07f));
+    ImGui::PushStyleColor(ImGuiCol_TextSelectedBg, ImVec4(0.26f, 0.59f, 0.98f, 0.35f));
+    ImGui::PushStyleColor(ImGuiCol_DragDropTarget, ImVec4(1.00f, 1.00f, 0.00f, 0.90f));
+    ImGui::PushStyleColor(ImGuiCol_NavHighlight, ImVec4(0.26f, 0.59f, 0.98f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_NavWindowingHighlight, ImVec4(1.00f, 1.00f, 1.00f, 0.70f));
+    ImGui::PushStyleColor(ImGuiCol_NavWindowingDimBg, ImVec4(0.80f, 0.80f, 0.80f, 0.20f));
+    ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0.80f, 0.80f, 0.80f, 0.35f));
+
     if (ImGui::Begin("Kaputt Config Menu", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
         ImGui::SetWindowSize({600, 600}, ImGuiCond_FirstUseEver);
@@ -336,5 +393,7 @@ void drawCatMenu()
         ImGui::TextDisabled(status_msg.c_str());
     }
     ImGui::End();
+
+    ImGui::PopStyleColor(53);
 }
 } // namespace kaputt

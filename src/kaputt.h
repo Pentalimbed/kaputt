@@ -39,11 +39,7 @@ struct TaggerOutput
     StrSet required_tags = {};
     StrSet banned_tags   = {};
 
-    void merge(const TaggerOutput& other)
-    {
-        required_tags.merge(const_cast<StrSet&>(other.required_tags)); // WHY IS MERGE NOT CONST I HAVE NO IDEA
-        banned_tags.merge(const_cast<StrSet&>(other.banned_tags));
-    }
+    void merge(const TaggerOutput& other);
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TaggerOutput, required_tags, banned_tags)
 
@@ -58,7 +54,7 @@ struct Tagger
     inline TaggerOutput tag(const RE::Actor* attacker, const RE::Actor* victim) const
     {
         if (enable_true || enable_false) // optimization
-            return getRule().at(rule.type)->check(rule.params, attacker, victim) ?
+            return rule.check(attacker, victim) ?
                 (enable_true ? true_tags : TaggerOutput{}) :
                 (enable_false ? false_tags : TaggerOutput{});
         else
@@ -76,6 +72,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Tagger, rule, enable_true, enable_false, true
 
 class Kaputt
 {
+    friend void drawPreconditionMenu();
     friend void drawTriggerMenu();
     friend void drawFilterMenu();
     friend void drawAnimationMenu();
@@ -116,7 +113,7 @@ public:
     // API
     inline bool precondition(const RE::Actor* attacker, const RE::Actor* victim)
     {
-        return std::ranges::all_of(preconds, [=](RuleInfo& rule) { return rule.enabled == rule.check(attacker, victim); });
+        return std::ranges::all_of(preconds, [=](RuleInfo& rule) { return (!rule.enabled) || (rule.need_true == rule.check(attacker, victim)); });
     }
     bool submit(RE::Actor* attacker, RE::Actor* victim, const TaggerOutput& extra_tags = {});
 };

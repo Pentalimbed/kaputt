@@ -58,7 +58,7 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
             logger::info("Game: data loaded");
 
             logger::info("Installing hook");
-            // stl::write_thunk_call<ProcessHitHook>();
+            stl::write_thunk_call<ProcessHitHook>();
 
             if (!Kaputt::getSingleton()->init())
                 setStatusMessage("Something went wrong during Kaputt initialization. Plugin is not disabled but you may check the log.");

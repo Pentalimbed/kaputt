@@ -20,6 +20,8 @@ inline void logJsonException(std::string_view context, const json::exception& e)
                  context, e.what());
 }
 
+void mergeSet(StrSet& from, const StrSet& to);
+
 bool        drawTagsInputText(std::string_view label, StrSet& tags);
 std::string joinTags(const StrSet& tags);
 StrSet      splitTags(std::string_view str);

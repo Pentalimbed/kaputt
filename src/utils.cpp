@@ -14,6 +14,12 @@ bool drawTagsInputText(std::string_view label, StrSet& tags)
     return result;
 }
 
+void mergeSet(StrSet& from, const StrSet& to)
+{
+    for (auto& item : to)
+        from.emplace(item);
+}
+
 std::string joinTags(const StrSet& tags)
 {
     std::string result = "";

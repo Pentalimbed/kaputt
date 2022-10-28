@@ -17,11 +17,14 @@ const StrMap<std::shared_ptr<RuleBase>>& getRule()
     static std::once_flag                    flag;
     std::call_once(flag, [&]() {
         RULEITEM(UnconditionalRule);
+        RULEITEM(PlayableRule);
         RULEITEM(BleedoutRule);
         RULEITEM(RagdollRule);
         RULEITEM(ProtectedRule);
         RULEITEM(EssentialRule);
         RULEITEM(AngleRule);
+        RULEITEM(LastHostileInRangeRule);
+        RULEITEM(SkeletonRule);
     });
     return rule_map;
 }
@@ -36,11 +39,66 @@ void SingleActorRuleParams::draw()
 
 void AngleRuleParams::draw()
 {
-    ImGui::SliderAngle("min", &angle_min);
-    ImGui::SliderAngle("max", &angle_max);
+    ImGui::SliderFloat("min", &angle_min, -360, 360, "%.0f deg");
+    ImGui::SliderAngle("max", &angle_max, -360, 360, "%.0f deg");
 }
 bool AngleRule::check(const AngleRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
 {
     return isBetweenAngle(const_cast<RE::Actor*>(victim)->GetHeadingAngle(attacker->GetPosition(), false), params.angle_min, params.angle_max);
+}
+
+void LastHostileInRangeRuleParams::draw()
+{
+    ImGui::SliderFloat("range", &range, 0.f, 4096.f);
+}
+bool LastHostileInRangeRule::check(const LastHostileInRangeRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+{
+    auto process_lists = RE::ProcessLists::GetSingleton();
+    if (!process_lists)
+    {
+        logger::error("Failed to get ProcessLists!");
+        return false;
+    }
+    auto n_load_actors = process_lists->numberHighActors;
+    if (n_load_actors == 0)
+        return true;
+
+    for (auto actor_handle : process_lists->highActorHandles)
+    {
+        if (!actor_handle || !actor_handle.get())
+            continue;
+
+        auto actor = actor_handle.get().get();
+
+        if ((actor == attacker) || (actor == victim) || (actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) <= 0))
+            continue;
+
+        float dist = actor->GetPosition().GetDistance(attacker->GetPosition());
+        if ((dist < params.range) && actor->IsHostileToActor(const_cast<RE::Actor*>(attacker)))
+            return false;
+    }
+    // EXTRA: CHECK PLAYER
+
+    if (!attacker->IsPlayerRef() && !victim->IsPlayerRef())
+        if (RE::Actor* player = RE::PlayerCharacter::GetSingleton(); player)
+        {
+            float dist = player->GetPosition().GetDistance(attacker->GetPosition());
+            if ((dist < params.range) && const_cast<RE::Actor*>(attacker)->IsHostileToActor(player))
+                return false;
+        }
+
+    return true;
+}
+
+void SkeletonRuleParams::draw()
+{
+    SingleActorRuleParams::draw();
+    ImGui::InputText("skeleton", &skeleton);
+}
+bool SkeletonRule::check(const SkeletonRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+{
+    auto actor = (params.check_attacker ? attacker : victim);
+    return strcmpi(actor->GetRace()->skeletonModels[actor->GetActorBase()->IsFemale()].model.c_str(),
+                   params.skeleton.c_str()) == 0;
 }
 } // namespace kaputt

@@ -37,9 +37,7 @@ int filterFilename(ImGuiInputTextCallbackData* data)
 
 
 
-
-
-void drawTriggerMenu()
+void drawPreconditionMenu()
 {
     static size_t selected_precond_idx = INT64_MAX;
 
@@ -87,10 +85,9 @@ void drawTriggerMenu()
         ImGui::EndTable();
     }
 
-    if (ImGui::BeginTable("preconds", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
-                          {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
+    if (ImGui::BeginTable("preconds", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY))
     {
-        ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize());
+        ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 1.2);
         ImGui::TableSetupColumn("Rule", ImGuiTableColumnFlags_WidthStretch, 0.2);
         ImGui::TableSetupColumn("Comment", ImGuiTableColumnFlags_WidthStretch, 0.5);
         ImGui::TableSetupColumn("Parameters", ImGuiTableColumnFlags_WidthStretch, 0.3);
@@ -104,11 +101,11 @@ void drawTriggerMenu()
             ImGui::PushID(count);
 
             ImGui::TableNextColumn();
-            ImGui::Text("%d", count + 1);
+            ImGui::Checkbox("##enable", &rule.enabled);
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{0.5f, 0.5f, 1.f, 1.f});
+            ImGui::PushStyleColor(ImGuiCol_Text, rule.enabled ? ImVec4{0.5f, 0.5f, 1.f, 1.f} : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
             if (ImGui::Selectable(rule.type.c_str(), selected_precond_idx == count))
                 selected_precond_idx = count;
             ImGui::PopStyleColor();
@@ -123,8 +120,8 @@ void drawTriggerMenu()
             rule.drawParams();
 
             ImGui::TableNextColumn();
-            if (ImGui::Selectable(rule.enabled ? "=true" : "=false"))
-                rule.enabled = !rule.enabled;
+            if (ImGui::Selectable(rule.need_true ? "=true" : "=false"))
+                rule.need_true = !rule.need_true;
 
             ImGui::PopID();
             ++count;
@@ -132,6 +129,10 @@ void drawTriggerMenu()
 
         ImGui::EndTable();
     }
+}
+
+void drawTriggerMenu()
+{
 }
 
 void drawFilterMenu()
@@ -209,7 +210,7 @@ void drawFilterMenu()
                 selected_tagger_idx = count;
             ImGui::PopStyleColor();
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip(rule.getHint().data());
+                ImGui::SetTooltip(tagger.rule.getHint().data());
             ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::InputTextWithHint("##comment", "Comment", &tagger.rule.comment);
 
@@ -222,7 +223,11 @@ void drawFilterMenu()
             {
                 ImGui::PushID(1);
                 drawTagsInputText("Require", tagger.true_tags.required_tags);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Press Enter to apply.");
                 drawTagsInputText("Ban", tagger.true_tags.banned_tags);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Press Enter to apply.");
                 ImGui::PopID();
             }
             ImGui::Checkbox("If False", &tagger.enable_false);
@@ -230,7 +235,11 @@ void drawFilterMenu()
             {
                 ImGui::PushID(0);
                 drawTagsInputText("Require", tagger.false_tags.required_tags);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Press Enter to apply.");
                 drawTagsInputText("Ban", tagger.false_tags.banned_tags);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Press Enter to apply.");
                 ImGui::PopID();
             }
 
@@ -542,7 +551,11 @@ void drawCatMenu()
         ImGui::BeginChild("main", {0.f, -ImGui::GetFontSize() - 2.f});
         if (ImGui::BeginTabBar("##"))
         {
-            if (ImGui::BeginTabItem("General")) { ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Precondition"))
+            {
+                drawPreconditionMenu();
+                ImGui::EndTabItem();
+            }
             if (ImGui::BeginTabItem("Trigger"))
             {
                 drawTriggerMenu();

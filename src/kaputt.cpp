@@ -11,6 +11,12 @@ namespace fs = std::filesystem;
 namespace kaputt
 {
 
+void TaggerOutput::merge(const TaggerOutput& other)
+{
+    mergeSet(required_tags, other.required_tags); // WHY IS MERGE DELETING THE OTHER?
+    mergeSet(banned_tags, other.banned_tags);
+}
+
 bool Kaputt::init()
 {
     logger::info("Initializing all Kaputt components.");
@@ -211,7 +217,7 @@ bool Kaputt::saveConfig(std::string_view dir)
 
 bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const TaggerOutput& extra_tags)
 {
-    std::vector<std::string_view> anims = {};
+    std::vector<std::string_view> anims = listAnims();
 
     auto tag_result = Tagger::tag(tagger_list, attacker, victim);
     tag_result.merge(extra_tags);
@@ -222,8 +228,8 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const TaggerOutput& 
 
         for (const auto& [from, to] : tagexp_list)
             if (orig_tags.contains(from))
-                exp_tags.merge(const_cast<StrSet&>(to));
-        exp_tags.merge(const_cast<StrSet&>(orig_tags));
+                mergeSet(exp_tags, to);
+        mergeSet(exp_tags, orig_tags);
 
         return !(std::ranges::all_of(tag_result.required_tags, [&](const std::string& tag) { return exp_tags.contains(tag); }) &&
                  std::ranges::none_of(tag_result.banned_tags, [&](const std::string& tag) { return exp_tags.contains(tag); }));

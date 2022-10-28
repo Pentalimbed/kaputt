@@ -1,13 +1,29 @@
 #include "re.h"
 
 #include "menu.h"
+#include "trigger.h"
 
 namespace kaputt
 {
 void ProcessHitHook::thunk(RE::Actor* a_victim, RE::HitData& a_hitData)
 {
-    // if (kaputt::PostHitTrigger::getSingleton()->process(a_victim, a_hitData))
-    //     return func(a_victim, a_hitData);
+    if (PostHitTrigger::getSingleton()->process(a_victim, a_hitData))
+        return func(a_victim, a_hitData);
+}
+
+bool isInPairedAnimation(const RE::Actor* actor)
+{
+    static RE::TESConditionItem cond;
+    static std::once_flag       flag;
+    std::call_once(flag, [&]() {
+        cond.data.functionData.function = RE::FUNCTION_DATA::FunctionID::kGetPairedAnimation;
+        cond.data.comparisonValue.f     = 0.0f;
+        cond.data.flags.opCode          = RE::CONDITION_ITEM_DATA::OpCode::kNotEqualTo;
+        cond.data.object                = RE::CONDITIONITEMOBJECT::kTarget;
+    });
+
+    RE::ConditionCheckParams params(nullptr, const_cast<RE::TESObjectREFR*>(actor->As<RE::TESObjectREFR>()));
+    return cond(params);
 }
 
 RE::Actor* getNearestNPC(RE::Actor* origin, float max_range)
@@ -38,6 +54,7 @@ RE::Actor* getNearestNPC(RE::Actor* origin, float max_range)
             continue;
 
         float dist = actor->GetPosition().GetDistance(origin->GetPosition());
+        logger::debug("dist {}", dist);
         if (dist < min_dist)
         {
             min_dist  = dist;

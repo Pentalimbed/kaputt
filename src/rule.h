@@ -1,5 +1,6 @@
 #pragma once
 
+#include "re.h"
 #include <nlohmann/json.hpp>
 
 namespace kaputt
@@ -62,6 +63,12 @@ struct SingleActorRuleParams : RuleParamsBase
     virtual void draw();
 };
 
+struct DummyRuleParams : RuleParamsBase
+{
+    bool                dummy = true;
+    virtual inline void draw() {}
+};
+
 //////////////////////////////////////////////////////////////////////// ACTUAL STUFF
 
 #define RULE_NAME_HINT(name, hint)                                \
@@ -79,12 +86,23 @@ struct UnconditionalRule : Rule<UnconditionalRuleParams>
     virtual inline bool check(const UnconditionalRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim) { return params.value; }
 };
 
+struct PlayableRule : Rule<SingleActorRuleParams>
+{
+    RULE_NAME_HINT("Animation Playable", "True if actor can play paired animations.\n"
+                                         "i.e. loaded, alive, not already playing animation, and not mounted.")
+    virtual inline bool check(const SingleActorRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        auto actor = params.check_attacker ? attacker : victim;
+        return actor->Is3DLoaded() && !actor->IsDead() && !isInPairedAnimation(actor) && !actor->IsOnMount();
+    }
+};
+
 struct BleedoutRule : Rule<SingleActorRuleParams>
 {
     RULE_NAME_HINT("Bleedout", "True if actor is bleeding out.")
     virtual inline bool check(const SingleActorRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
     {
-        return (params.check_attacker ? attacker : victim)->GetActorRuntimeData().boolFlags.all(RE::Actor::BOOL_FLAGS::kInBleedoutAnimation);
+        return isBleedout(params.check_attacker ? attacker : victim);
     }
 };
 
@@ -97,12 +115,12 @@ struct RagdollRule : Rule<SingleActorRuleParams>
     }
 };
 
-struct ProtectedRule : Rule<SingleActorRuleParams>
+struct ProtectedRule : Rule<DummyRuleParams>
 {
-    RULE_NAME_HINT("Protected", "True if actor is protected.")
-    virtual inline bool check(const SingleActorRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+    RULE_NAME_HINT("Protected", "True if victim is protected and attacker is not player.")
+    virtual inline bool check(const DummyRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
     {
-        return (params.check_attacker ? attacker : victim)->GetActorRuntimeData().boolFlags.all(RE::Actor::BOOL_FLAGS::kProtected);
+        return !attacker->IsPlayerRef() && victim->GetActorRuntimeData().boolFlags.all(RE::Actor::BOOL_FLAGS::kProtected);
     }
 };
 
@@ -127,6 +145,28 @@ struct AngleRule : Rule<AngleRuleParams>
     virtual bool check(const AngleRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim);
 };
 
+struct LastHostileInRangeRuleParams : RuleParamsBase
+{
+    float        range = 1024;
+    virtual void draw();
+};
+struct LastHostileInRangeRule : Rule<LastHostileInRangeRuleParams>
+{
+    RULE_NAME_HINT("Last Hostile", "True if the victim is the last hostile actor within certain distance (1024 ~= 15 m/48').")
+    virtual bool check(const LastHostileInRangeRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim);
+};
+
+struct SkeletonRuleParams : SingleActorRuleParams
+{
+    std::string  skeleton = "";
+    virtual void draw();
+};
+struct SkeletonRule : Rule<SkeletonRuleParams>
+{
+    RULE_NAME_HINT("Skeleton", "True if the actor's skeleton matches. For race checks.")
+    virtual bool check(const SkeletonRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim);
+};
+
 //////////////////////////////////////////////////////////////////////// CEREALIZATION
 
 const StrMap<std::shared_ptr<RuleBase>>& getRule();
@@ -134,8 +174,10 @@ const StrMap<std::shared_ptr<RuleBase>>& getRule();
 // This is for better fitting json serialization to avoid using pointers in class
 struct RuleInfo
 {
+    bool enabled   = true; // for other purposes
+    bool need_true = true;
+
     std::string type    = "";
-    bool        enabled = true; // for other purposes
     std::string comment = "";
     json        params  = {};
 
@@ -151,15 +193,18 @@ struct RuleInfo
     }
 
     // THESE WILL THROW
-    inline bool             check(const RE::Actor* attacker, const RE::Actor* victim) { return getRule().at(type)->check(params, attacker, victim); }
-    inline std::string_view getHint() { getRule().at(type)->getHint(); }
+    inline bool             check(const RE::Actor* attacker, const RE::Actor* victim) const { return getRule().at(type)->check(params, attacker, victim); }
+    inline std::string_view getHint() { return getRule().at(type)->getHint(); }
     inline void             drawParams() { getRule().at(type)->drawParams(params); }
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(RuleInfo, type, enabled, params)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(RuleInfo, type, enabled, need_true, params, comment)
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DummyRuleParams, dummy)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleActorRuleParams, check_attacker)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UnconditionalRuleParams, value)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AngleRuleParams, angle_min, angle_max)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LastHostileInRangeRuleParams, range)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SkeletonRuleParams, check_attacker, skeleton)
 
 } // namespace kaputt

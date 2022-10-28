@@ -168,8 +168,7 @@ void drawAnimationMenu()
         ImGui::TextDisabled("[?]");
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("If an animation has the tag on the left, then all tags on the right are provided.\n"
-                              "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.\n"
-                              "Click the '->' to select the item for removal. Duplicate items will be removed after save and reload.");
+                              "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.");
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
@@ -201,7 +200,7 @@ void drawAnimationMenu()
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Press Enter to apply. It will be sorted.\n"
                                   "If the tag already exists, nothing will happen.\n"
-                                  "Leave empty and press Enter to delete the item.");
+                                  "Leave this empty and press Enter to delete the item.");
 
             ImGui::TableNextColumn();
             ImGui::Text("->");

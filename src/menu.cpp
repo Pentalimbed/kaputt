@@ -89,17 +89,22 @@ void drawFilterMenu()
         ImGui::EndTable();
     }
 
-    if (ImGui::BeginTable("tagger", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY))
+    if (ImGui::BeginTable("tagger", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY))
     {
+        ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize());
         ImGui::TableSetupColumn("Rule", ImGuiTableColumnFlags_WidthStretch, 0.4);
         ImGui::TableSetupColumn("Parameters", ImGuiTableColumnFlags_WidthStretch, 0.3);
         ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.3);
+        ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableHeadersRow();
 
         size_t count = 0;
         for (auto& tagger : tagger_list)
         {
             ImGui::PushID(count);
+
+            ImGui::TableNextColumn();
+            ImGui::Text("%d", count + 1);
 
             ImGui::TableNextColumn();
             ImGui::Checkbox("##enable", &tagger.rule.enabled);
@@ -226,9 +231,10 @@ void drawAnimationMenu()
     }
 
     // anim filters
-    ImGui::Text("Animation List");
-    ImGui::SameLine();
-    ImGui::Separator();
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::Selectable("Animation List", true, ImGuiSelectableFlags_Disabled);
+    ImGui::Spacing();
+
     if (ImGui::BeginTable("filtertab", 4))
     {
         ImGui::TableSetupColumn("filter", ImGuiTableColumnFlags_WidthStretch, 0.5);
@@ -258,6 +264,7 @@ void drawAnimationMenu()
     {
         ImGui::TableSetupColumn("Editor ID", ImGuiTableColumnFlags_WidthStretch, 0.4);
         ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.6);
+        ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableHeadersRow();
 
         auto anim_list = kaputt->listAnims(filter_text, filter_mode);
@@ -380,14 +387,15 @@ void drawCatMenu()
             ImGui::TextUnformatted("Config:");
 
             ImGui::TableNextColumn();
+            ImGui::PushStyleColor(ImGuiCol_Button, {0.5f, 0.1f, 0.1f, 1.f});
             if (ImGui::Button("Save", {-FLT_MIN, 0.f}))
                 setStatusMessage(kaputt->saveConfig(def_config_path) ?
                                      fmt::format("Config saved to {}", def_config_path) :
                                      "Something went wrong while saving. Please check the log.");
-
+            ImGui::PopStyleColor();
 
             ImGui::TableNextColumn();
-            if (ImGui::Button("Save As...", {-FLT_MIN, 0.f}))
+            if (ImGui::Button("Save As Preset", {-FLT_MIN, 0.f}))
                 ImGui::OpenPopup("save config");
             if (ImGui::BeginPopup("save config"))
             {
@@ -404,7 +412,7 @@ void drawCatMenu()
             }
 
             ImGui::TableNextColumn();
-            if (ImGui::Button("Load...", {-FLT_MIN, 0.f}))
+            if (ImGui::Button("Load Preset", {-FLT_MIN, 0.f}))
                 ImGui::OpenPopup("load config");
             if (ImGui::BeginPopup("load config"))
             {

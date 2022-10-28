@@ -195,7 +195,8 @@ bool Kaputt::saveConfig(std::string_view dir)
             return false;
         }
 
-        ostream << json{*this};
+        json j = *this;
+        ostream << j.dump(4);
     }
     else
     {

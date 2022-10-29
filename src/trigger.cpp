@@ -24,7 +24,7 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
     logger::debug("precond pass!");
 
     // execution check
-    uint8_t do_trigger = enable_bleedout_execution && isBleedout(victim); // 0-no 1-exec 2-killmove
+    uint8_t do_trigger = enable_bleedout_execution && victim->AsActorState()->IsBleedingOut(); // 0-no 1-exec 2-killmove
     // damage check
     if (!do_trigger)
     {
@@ -40,7 +40,8 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
     if (!lottery(attacker, victim, do_trigger == 1))
         return true;
 
-    return !kap->submit(attacker, victim); // TODO if animation not played, cache and register hit after some milliseconds
+    kap->submit(attacker, victim); // TODO if animation not played, cache and register hit after some milliseconds
+    return true;
 }
 
 bool PostHitTrigger::lottery(RE::Actor* attacker, RE::Actor* victim, bool is_exec)

@@ -12,8 +12,8 @@ public:
     bool enabled = true;
 
     bool                 enable_bleedout_execution = true;
-    std::array<float, 3> prob_km                   = {1.0f, 0.0f, 1.0f}; // p2n, n2p, n2n
-    std::array<float, 3> prob_exec                 = {1.0f, 0.0f, 1.0f};
+    std::array<float, 3> prob_km                   = {1.0f, 1.0f, 1.0f}; // p2n, n2p, n2n
+    std::array<float, 3> prob_exec                 = {1.0f, 1.0f, 1.0f};
 
     // FUNC
     static PostHitTrigger* getSingleton()

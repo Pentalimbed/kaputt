@@ -3,6 +3,7 @@
 #include "re.h"
 #include "utils.h"
 #include "kaputt.h"
+#include "trigger.h"
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -87,11 +88,11 @@ void drawPreconditionMenu()
 
     if (ImGui::BeginTable("preconds", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY))
     {
-        ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 1.2);
+        ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 1.5);
         ImGui::TableSetupColumn("Rule", ImGuiTableColumnFlags_WidthStretch, 0.2);
         ImGui::TableSetupColumn("Comment", ImGuiTableColumnFlags_WidthStretch, 0.5);
         ImGui::TableSetupColumn("Parameters", ImGuiTableColumnFlags_WidthStretch, 0.3);
-        ImGui::TableSetupColumn("##", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 3);
+        ImGui::TableSetupColumn("Needs", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 3);
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableHeadersRow();
 
@@ -133,6 +134,43 @@ void drawPreconditionMenu()
 
 void drawTriggerMenu()
 {
+    auto post_trigger = PostHitTrigger::getSingleton();
+    if (ImGui::CollapsingHeader("Post-Hit"))
+    {
+        ImGui::Checkbox("Enabled", &post_trigger->enabled);
+        ImGui::Separator();
+        ImGui::Checkbox("Bleedout Execution", &post_trigger->enable_bleedout_execution);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("One-hit killmove triggering on a bleeding out actor.\n");
+        if (ImGui::BeginTable("chances", 4))
+        {
+            ImGui::TableSetupColumn("Chances");
+            ImGui::TableSetupColumn("Player->NPC");
+            ImGui::TableSetupColumn("NPC->Player");
+            ImGui::TableSetupColumn("NPC->NPC");
+            ImGui::TableHeadersRow();
+
+            ImGui::TableNextColumn();
+            ImGui::Text("Killmove");
+            for (auto i : {0, 1, 2})
+            {
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SliderFloat("##", &post_trigger->prob_km[i], 0.f, 1.f, "%.2f / 1");
+            }
+
+            ImGui::TableNextColumn();
+            ImGui::Text("Execution");
+            for (auto i : {0, 1, 2})
+            {
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SliderFloat("##", &post_trigger->prob_exec[i], 0.f, 1.f, "%.2f / 1");
+            }
+
+            ImGui::EndTable();
+        }
+    }
 }
 
 void drawFilterMenu()
@@ -141,6 +179,10 @@ void drawFilterMenu()
 
     auto  kaputt      = Kaputt::getSingleton();
     auto& tagger_list = kaputt->tagger_list;
+
+    ImGui::BeginChild("note", {-FLT_MIN, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2}, true);
+    ImGui::Text("Weapon and race tags are automatically generated.");
+    ImGui::EndChild();
 
     // Taggers
     if (ImGui::BeginTable("tagger config", 5))

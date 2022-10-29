@@ -28,11 +28,11 @@ StrSet      splitTags(std::string_view str);
 
 inline bool isBetweenAngle(float a, float lb, float ub)
 {
-    while (a < lb)
-        a += 360;
-    while (a > ub)
+    while (a >= lb)
         a -= 360;
-    return a >= lb;
+    while (a <= lb)
+        a += 360;
+    return a <= ub;
 }
 
 } // namespace kaputt

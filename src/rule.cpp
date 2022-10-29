@@ -5,6 +5,8 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
+#include <effolkronium/random.hpp>
+
 namespace kaputt
 {
 
@@ -25,6 +27,13 @@ const StrMap<std::shared_ptr<RuleBase>>& getRule()
         RULEITEM(AngleRule);
         RULEITEM(LastHostileInRangeRule);
         RULEITEM(SkeletonRule);
+        RULEITEM(PlayerRule);
+        RULEITEM(RaceRule);
+        RULEITEM(PerkRule);
+        RULEITEM(DecapPerkRule);
+        RULEITEM(SneakRule);
+        RULEITEM(DetectedRule);
+        RULEITEM(FactionRule);
     });
     return rule_map;
 }
@@ -40,7 +49,7 @@ void SingleActorRuleParams::draw()
 void AngleRuleParams::draw()
 {
     ImGui::SliderFloat("min", &angle_min, -360, 360, "%.0f deg");
-    ImGui::SliderAngle("max", &angle_max, -360, 360, "%.0f deg");
+    ImGui::SliderFloat("max", &angle_max, -360, 360, "%.0f deg");
 }
 bool AngleRule::check(const AngleRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
 {
@@ -100,5 +109,34 @@ bool SkeletonRule::check(const SkeletonRuleParams& params, const RE::Actor* atta
     auto actor = (params.check_attacker ? attacker : victim);
     return strcmpi(actor->GetRace()->skeletonModels[actor->GetActorBase()->IsFemale()].model.c_str(),
                    params.skeleton.c_str()) == 0;
+}
+
+void RaceRuleParams::draw()
+{
+    SingleActorRuleParams::draw();
+    ImGui::InputText("race", &race);
+}
+
+void PerkRuleParams::draw()
+{
+    SingleActorRuleParams::draw();
+    ImGui::InputText("perk", &perk);
+}
+
+void DecapPerkRuleParams::draw()
+{
+    SingleActorRuleParams::draw();
+    ImGui::SliderFloat("chance", &decap_chance, 0.f, 100.f, "%.0f %%");
+}
+bool DecapPerkRule::check(const DecapPerkRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+{
+    bool can_decap = canDecap(params.check_attacker ? attacker : victim);
+    return can_decap ? (effolkronium::random_static::get(0.f, 100.f) < params.decap_chance) : false;
+}
+
+void FactionRuleParams::draw()
+{
+    SingleActorRuleParams::draw();
+    ImGui::InputText("faction", &faction);
 }
 } // namespace kaputt

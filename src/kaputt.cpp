@@ -222,6 +222,25 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const TaggerOutput& 
     auto tag_result = Tagger::tag(tagger_list, attacker, victim);
     tag_result.merge(extra_tags);
 
+    // race tagger
+    tag_result.required_tags.insert("a_" + getSkeletonRace(attacker));
+    tag_result.required_tags.insert("v_" + getSkeletonRace(victim));
+    // weap tagger
+    if (auto str = getEquippedTag(attacker, true); !str.empty())
+        tag_result.required_tags.insert("a_" + str);
+    if (auto str = getEquippedTag(attacker, false); !str.empty())
+        tag_result.required_tags.insert("a_" + str);
+    if (auto str = getEquippedTag(victim, true); !str.empty())
+        tag_result.required_tags.insert("v_" + str);
+    if (auto str = getEquippedTag(victim, false); !str.empty())
+        tag_result.required_tags.insert("v_" + str);
+    if (tag_result.required_tags.contains("a_shield"))
+        tag_result.banned_tags.insert("a_no_shield");
+    if (tag_result.required_tags.contains("v_shield"))
+        tag_result.banned_tags.insert("v_no_shield");
+
+    logger::debug("req: {}\nban: {}", joinTags(tag_result.required_tags), joinTags(tag_result.banned_tags));
+
     std::erase_if(anims, [&](std::string_view edid) {
         StrSet exp_tags  = {};
         auto&  orig_tags = getTags(edid);
@@ -242,6 +261,12 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const TaggerOutput& 
     auto edid = anims[effolkronium::random_static::get(0ull, anims.size() - 1)];
     if (auto idle = RE::TESForm::LookupByEditorID<RE::TESIdleForm>(edid); idle)
     {
+        // preprocess
+        attacker->NotifyAnimationGraph("attackStop");
+        victim->NotifyAnimationGraph("attackStop");
+        attacker->NotifyAnimationGraph("staggerStop");
+        victim->NotifyAnimationGraph("staggerStop");
+
         playPairedIdle(idle, attacker, victim); // TODO: clear
         return true;
     }

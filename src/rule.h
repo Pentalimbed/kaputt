@@ -102,7 +102,7 @@ struct BleedoutRule : Rule<SingleActorRuleParams>
     RULE_NAME_HINT("Bleedout", "True if actor is bleeding out.")
     virtual inline bool check(const SingleActorRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
     {
-        return isBleedout(params.check_attacker ? attacker : victim);
+        return (params.check_attacker ? attacker : victim)->AsActorState()->IsBleedingOut();
     }
 };
 
@@ -163,9 +163,93 @@ struct SkeletonRuleParams : SingleActorRuleParams
 };
 struct SkeletonRule : Rule<SkeletonRuleParams>
 {
-    RULE_NAME_HINT("Skeleton", "True if the actor's skeleton matches. For race checks.")
+    RULE_NAME_HINT("Skeleton", "True if the actor's skeleton file name matches.")
     virtual bool check(const SkeletonRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim);
 };
+
+struct PlayerRule : Rule<SingleActorRuleParams>
+{
+    RULE_NAME_HINT("Player", "True if the actor is player.")
+    virtual inline bool check(const SingleActorRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        return (params.check_attacker ? attacker : victim)->IsPlayerRef();
+    }
+};
+
+struct RaceRuleParams : SingleActorRuleParams
+{
+    std::string  race = "";
+    virtual void draw();
+};
+struct RaceRule : Rule<RaceRuleParams>
+{
+    RULE_NAME_HINT("Race", "True if the actor is the race by Editor ID.")
+    virtual inline bool check(const RaceRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        return (params.check_attacker ? attacker : victim)->GetRace()->GetFormEditorID() == params.race;
+    }
+};
+
+struct PerkRuleParams : SingleActorRuleParams
+{
+    std::string  perk = "";
+    virtual void draw();
+};
+struct PerkRule : Rule<PerkRuleParams>
+{
+    RULE_NAME_HINT("Perk", "True if the actor has the perk by Editor ID.")
+    virtual inline bool check(const PerkRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        auto perk = RE::TESForm::LookupByEditorID<RE::BGSPerk>(params.perk);
+        return perk && (params.check_attacker ? attacker : victim)->HasPerk(perk);
+    }
+};
+
+struct DecapPerkRuleParams : SingleActorRuleParams
+{
+    float        decap_chance = 30;
+    virtual void draw();
+};
+struct DecapPerkRule : Rule<DecapPerkRuleParams>
+{
+    RULE_NAME_HINT("Decap Perk", "True if the actor has the decap perk. With chance.")
+    virtual bool check(const DecapPerkRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim);
+};
+
+struct SneakRule : Rule<SingleActorRuleParams>
+{
+    RULE_NAME_HINT("Sneak", "True if the actor is sneaking/crouching.")
+    virtual inline bool check(const SingleActorRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        return (params.check_attacker ? attacker : victim)->IsSneaking();
+    }
+};
+
+struct DetectedRule : Rule<DummyRuleParams>
+{
+    RULE_NAME_HINT("Detected", "True if the attacker is detected by the victim.")
+    virtual inline bool check(const DummyRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        return getDetected(attacker, victim);
+    }
+};
+
+struct FactionRuleParams : SingleActorRuleParams
+{
+    std::string  faction = "";
+    virtual void draw();
+};
+struct FactionRule : Rule<FactionRuleParams>
+{
+    RULE_NAME_HINT("Faction", "True if the actor is in the faction by Editor ID.")
+    virtual inline bool check(const FactionRuleParams& params, const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        auto faction = RE::TESForm::LookupByEditorID<RE::TESFaction>(params.faction);
+        return faction && (params.check_attacker ? attacker : victim)->IsInFaction(faction);
+    }
+};
+
+// TODO Check keyword
 
 //////////////////////////////////////////////////////////////////////// CEREALIZATION
 
@@ -206,5 +290,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UnconditionalRuleParams, value)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AngleRuleParams, angle_min, angle_max)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LastHostileInRangeRuleParams, range)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SkeletonRuleParams, check_attacker, skeleton)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(RaceRuleParams, check_attacker, race)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PerkRuleParams, check_attacker, perk)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DecapPerkRuleParams, check_attacker, decap_chance)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FactionRuleParams, check_attacker, faction)
 
 } // namespace kaputt

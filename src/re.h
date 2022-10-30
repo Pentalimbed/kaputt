@@ -36,7 +36,10 @@ bool getDetected(const RE::Actor* attacker, const RE::Actor* victim);
 
 /* ------------- CUSTOM FUNC ------------- */
 
+inline bool animPlayable(const RE::Actor* actor) { return actor->Is3DLoaded() && !actor->IsDead() && !isInPairedAnimation(actor) && !actor->IsOnMount() && !actor->IsInRagdollState(); }
+
 RE::Actor* getNearestNPC(RE::Actor* origin, float max_range = 256);
+bool       isLastHostileInRange(const RE::Actor* attacker, const RE::Actor* victim, float range);
 
 void playPairedIdle(RE::TESIdleForm* idle, RE::Actor* attacker, RE::Actor* victim);
 void testPlayPairedIdle(RE::TESIdleForm* idle, float max_range = 256);

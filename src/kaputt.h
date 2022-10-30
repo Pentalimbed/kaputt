@@ -1,72 +1,92 @@
 #pragma once
 
-#include "kaputtAPI.h"
-
-#include <nlohmann/json.hpp>
+#include "rule.h"
 
 namespace kaputt
 {
 
-struct PreconditionParams
-{
-    enum class ESSENTIAL_PROT_ENUM : int
-    {
-        ENABLED,
-        PROTECTED,
-        DISABLED
-    } essential_protection      = ESSENTIAL_PROT_ENUM::ENABLED;
-    bool   protected_protection = true;
-    float  last_hostile_range   = 1024;
-    StrSet skipped_race         = {"FrostbiteSpiderRaceGiant",
-                                   "SprigganMatronRace",
-                                   "SprigganEarthMotherRace",
-                                   "DLC2SprigganBurntRace",
-                                   "DLC1LD_ForgemasterRace",
-                                   "DLC2GhostFrostGiantRace"};
-};
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PreconditionParams, essential_protection, protected_protection, last_hostile_range, skipped_race)
+/** Tags
+ *  
+ *  Delimited by SPACE
+ * 
+ *  -- Actor Weapon --
+ *  e.g. a_dagger_l: attacker must wield dagger in left hand
+ *  ONE HANDED: fist dagger sword axe mace staff + _l _r
+ *  ALWAYS LEFT: shield torch
+ *  TWO HANDED: sword2h axe2h mace2h bow crossbow
+ *  COMMON: 1h_l 1h_r 2h all_l all_r all
+ * 
+ *  -- Actor Race --
+ *  a_human
+ *  human
+ *  bear giant falmer hag cat spriggan centurion
+ *  dragon troll wolf draugr chaurus(hunter) gargoyle
+ *  boar riekling scrib lurker ballista vamplord werewolf
+ * 
+ *  -- Positioning --
+ *  front back left right : relative to victim's orientation
+ * 
+ *  -- Misc --
+ *  decap: decapitation
+ *  adv: advancing
+ *  sneak: sneaking killmove
+ *  bleed: bleedout execution
+ *  a_/v_player: player only
+ */
 
-class Kaputt : public KaputtAPI
+struct TaggerOutput
 {
-    friend void drawSettingMenu();
+    StrSet required_tags = {};
+    StrSet banned_tags   = {};
+
+    void merge(const TaggerOutput& other);
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TaggerOutput, required_tags, banned_tags)
+
+struct Tagger
+{
+    RuleInfo     rule         = {};
+    bool         enable_true  = false;
+    bool         enable_false = false;
+    TaggerOutput true_tags    = {};
+    TaggerOutput false_tags   = {};
+
+    inline TaggerOutput tag(const RE::Actor* attacker, const RE::Actor* victim) const
+    {
+        if (enable_true || enable_false) // optimization
+            return rule.check(attacker, victim) ?
+                (enable_true ? true_tags : TaggerOutput{}) :
+                (enable_false ? false_tags : TaggerOutput{});
+        else
+            return {};
+    }
+    inline static TaggerOutput tag(const std::vector<Tagger>& tagger_list, const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        TaggerOutput output = {};
+        for (const auto& tagger : tagger_list)
+            output.merge(tagger.tag(attacker, victim));
+        return output;
+    }
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Tagger, rule, enable_true, enable_false, true_tags, false_tags)
+
+class Kaputt
+{
+    friend void drawPreconditionMenu();
     friend void drawTriggerMenu();
+    friend void drawFilterMenu();
     friend void drawAnimationMenu();
 
 private:
     std::atomic_bool ready;
 
-    /** Tags
-     *  
-     *  Delimited by SPACE
-     * 
-     *  -- Actor Weapon --
-     *  e.g. a_dagger_l: attacker must wield dagger in left hand
-     *  ONE HANDED: fist dagger sword axe mace staff + _l _r
-     *  ALWAYS LEFT: shield torch
-     *  TWO HANDED: sword2h axe2h mace2h bow crossbow
-     *  COMMON: 1h_l 1h_r 2h all_l all_r all
-     * 
-     *  -- Actor Race --
-     *  a_human
-     *  human
-     *  bear giant falmer hag cat spriggan centurion
-     *  dragon troll wolf draugr chaurus(hunter) gargoyle
-     *  boar riekling scrib lurker ballista vamplord werewolf
-     * 
-     *  -- Positioning --
-     *  front back left right : relative to victim's orientation
-     * 
-     *  -- Misc --
-     *  decap: decapitation
-     *  adv: advancing
-     *  sneak: sneaking killmove
-     *  bleed: bleedout execution
-     *  a_/v_player: player only
-     */
-    StrMap<StrSet> anim_tags_map        = {};
-    StrMap<StrSet> anim_custom_tags_map = {};
+    StrMap<StrSet> anim_tags_map = {};
 
-    PreconditionParams precond_params = {};
+    std::vector<RuleInfo> preconds = {};
+
+    std::vector<Tagger> tagger_list          = {};
+    StrMap<StrSet>      tagexp_list          = {};
+    StrMap<StrSet>      anim_custom_tags_map = {};
 
 public:
     // INIT
@@ -75,14 +95,13 @@ public:
         static Kaputt kaputt;
         return std::addressof(kaputt);
     }
-    bool                        init();
-    virtual inline REL::Version getVersion() { return SKSE::PluginDeclaration::GetSingleton()->GetVersion(); }
-    virtual inline bool         isReady() { return ready.load(); }
+    bool                init();
+    virtual inline bool isReady() { return ready.load(); }
 
     // FILE IO
     bool loadAnims();
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Kaputt, anim_custom_tags_map, precond_params)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Kaputt, preconds, tagger_list, tagexp_list, anim_custom_tags_map)
     bool loadConfig(std::string_view dir);
     bool saveConfig(std::string_view dir);
 
@@ -92,9 +111,10 @@ public:
     bool                          setTags(std::string_view edid, const StrSet& tags);
 
     // API
-    virtual bool precondition(const RE::Actor* attacker, const RE::Actor* victim);
-    virtual bool submit(RE::Actor*              attacker,
-                        RE::Actor*              victim,
-                        const SubmitInfoStruct& submit_info = {});
+    inline bool precondition(const RE::Actor* attacker, const RE::Actor* victim)
+    {
+        return std::ranges::all_of(preconds, [=](RuleInfo& rule) { return (!rule.enabled) || (rule.need_true == rule.check(attacker, victim)); });
+    }
+    bool submit(RE::Actor* attacker, RE::Actor* victim, const TaggerOutput& extra_tags = {});
 };
 } // namespace kaputt

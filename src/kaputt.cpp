@@ -11,6 +11,12 @@ namespace fs = std::filesystem;
 namespace kaputt
 {
 
+void TaggerOutput::merge(const TaggerOutput& other)
+{
+    mergeSet(required_tags, other.required_tags); // WHY IS MERGE DELETING THE OTHER?
+    mergeSet(banned_tags, other.banned_tags);
+}
+
 bool Kaputt::init()
 {
     logger::info("Initializing all Kaputt components.");
@@ -209,40 +215,48 @@ bool Kaputt::saveConfig(std::string_view dir)
     return all_ok;
 }
 
-bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
-{
-    // Playable check
-    if (!(animPlayable(attacker) && animPlayable(victim)))
-        return false;
-    // Essential check
-    if (victim->IsEssential())
-        switch (precond_params.essential_protection)
-        {
-            case PreconditionParams::ESSENTIAL_PROT_ENUM::ENABLED:
-                return false;
-            case PreconditionParams::ESSENTIAL_PROT_ENUM::PROTECTED:
-                if (!attacker->IsPlayerRef())
-                    return false;
-                break;
-            default:
-                break;
-        }
-    // Protected check
-    if (precond_params.protected_protection && victim->IsProtected() && !attacker->IsPlayerRef())
-        return false;
-    // Last hostile check
-    if (!isLastHostileInRange(attacker, victim, precond_params.last_hostile_range))
-        return false;
-    // Race filters
-    if (std::ranges::any_of(std::array{attacker, victim}, [&](auto actor) { return precond_params.skipped_race.contains(actor->GetRace()->GetFormEditorID()); }))
-        return false;
-    // Finally
-    return true;
-}
-
-bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStruct& submit_info)
+bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const TaggerOutput& extra_tags)
 {
     std::vector<std::string_view> anims = listAnims();
+
+    auto tag_result = Tagger::tag(tagger_list, attacker, victim);
+    tag_result.merge(extra_tags);
+
+    // race tagger
+    tag_result.required_tags.insert("a_" + getSkeletonRace(attacker));
+    tag_result.required_tags.insert("v_" + getSkeletonRace(victim));
+    // weap tagger
+    if (auto str = getEquippedTag(attacker, true); !str.empty())
+        tag_result.required_tags.insert("a_" + str);
+    if (auto str = getEquippedTag(attacker, false); !str.empty())
+        tag_result.required_tags.insert("a_" + str);
+    if (auto str = getEquippedTag(victim, true); !str.empty())
+        tag_result.required_tags.insert("v_" + str);
+    if (auto str = getEquippedTag(victim, false); !str.empty())
+        tag_result.required_tags.insert("v_" + str);
+    if (tag_result.required_tags.contains("a_shield"))
+        tag_result.banned_tags.insert("a_no_shield");
+    if (tag_result.required_tags.contains("v_shield"))
+        tag_result.banned_tags.insert("v_no_shield");
+
+    logger::debug("req: {}\nban: {}", joinTags(tag_result.required_tags), joinTags(tag_result.banned_tags));
+
+    std::erase_if(anims, [&](std::string_view edid) {
+        StrSet exp_tags  = {};
+        auto&  orig_tags = getTags(edid);
+
+        for (const auto& [from, to] : tagexp_list)
+            if (orig_tags.contains(from))
+                mergeSet(exp_tags, to);
+        mergeSet(exp_tags, orig_tags);
+
+        return !(std::ranges::all_of(tag_result.required_tags, [&](const std::string& tag) { return exp_tags.contains(tag); }) &&
+                 std::ranges::none_of(tag_result.banned_tags, [&](const std::string& tag) { return exp_tags.contains(tag); }));
+    });
+
+    logger::debug("Filtered {} animations, {} remains.", anim_tags_map.size(), anims.size());
+    if (anims.empty())
+        return false;
 
     auto edid = anims[effolkronium::random_static::get(0ull, anims.size() - 1)];
     if (auto idle = RE::TESForm::LookupByEditorID<RE::TESIdleForm>(edid); idle)
@@ -252,11 +266,6 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
         victim->NotifyAnimationGraph("attackStop");
         attacker->NotifyAnimationGraph("staggerStop");
         victim->NotifyAnimationGraph("staggerStop");
-        if (victim->IsInRagdollState())
-        {
-            victim->NotifyAnimationGraph("GetUpStart");
-            victim->NotifyAnimationGraph("GetUpExit");
-        }
 
         playPairedIdle(idle, attacker, victim); // TODO: clear
         return true;

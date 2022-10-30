@@ -23,9 +23,8 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
         return true;
     logger::debug("precond pass!");
 
-    // 0-no 1-exec 2-killmove
     // execution check
-    uint8_t do_trigger = enable_bleedout_execution && victim->AsActorState()->IsBleedingOut();
+    uint8_t do_trigger = enable_bleedout_execution && victim->AsActorState()->IsBleedingOut(); // 0-no 1-exec 2-killmove
     // damage check
     if (!do_trigger)
     {

@@ -50,6 +50,45 @@ bool getDetected(const RE::Actor* attacker, const RE::Actor* victim)
     return cond(params);
 }
 
+
+bool isLastHostileInRange(const RE::Actor* attacker, const RE::Actor* victim, float range)
+{
+    auto process_lists = RE::ProcessLists::GetSingleton();
+    if (!process_lists)
+    {
+        logger::error("Failed to get ProcessLists!");
+        return false;
+    }
+    auto n_load_actors = process_lists->numberHighActors;
+    if (n_load_actors == 0)
+        return true;
+
+    for (auto actor_handle : process_lists->highActorHandles)
+    {
+        if (!actor_handle || !actor_handle.get())
+            continue;
+
+        auto actor = actor_handle.get().get();
+
+        if ((actor == attacker) || (actor == victim) || (actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) <= 0))
+            continue;
+
+        float dist = actor->GetPosition().GetDistance(attacker->GetPosition());
+        if ((dist < range) && actor->IsHostileToActor(const_cast<RE::Actor*>(attacker)))
+            return false;
+    }
+    // EXTRA: CHECK PLAYER
+    if (!attacker->IsPlayerRef() && !victim->IsPlayerRef())
+        if (RE::Actor* player = RE::PlayerCharacter::GetSingleton(); player)
+        {
+            float dist = player->GetPosition().GetDistance(attacker->GetPosition());
+            if ((dist < range) && const_cast<RE::Actor*>(attacker)->IsHostileToActor(player))
+                return false;
+        }
+
+    return true;
+}
+
 RE::Actor* getNearestNPC(RE::Actor* origin, float max_range)
 {
     logger::debug("getNearestNPC");

@@ -25,7 +25,6 @@ set(headers
         src/cathub.h
         src/menu.h
         src/utils.h
-        src/rule.h
         src/kaputtAPI.h
         src/kaputt.h
         src/trigger.h)
@@ -35,7 +34,6 @@ set(sources
         src/main.cpp
         src/menu.cpp
         src/utils.cpp
-        src/rule.cpp
         src/kaputt.cpp
         src/trigger.cpp
 

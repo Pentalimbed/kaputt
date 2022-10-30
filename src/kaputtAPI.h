@@ -9,18 +9,21 @@ namespace kaputt
 {
 constexpr REL::Version API_VER = {1, 0, 0, 0};
 
-struct TaggerOutput;
+struct SubmitInfoStruct
+{
+    std::set<std::string, std::less<>> required_tags = {};
+    std::set<std::string, std::less<>> banned_tags   = {};
+};
 
 class KaputtAPI
 {
 public:
-    virtual REL::Version getVersion();
-    virtual bool         isReady()                                                          = 0; // check if everything's loaded
-    virtual bool         precondition(const RE::Actor* attacker, const RE::Actor* victim)   = 0; // applying kaputt-defined preconditions before examining yourself
-    virtual bool         submit(RE::Actor*                                attacker,
-                                RE::Actor*                                victim,
-                                const std::set<std::string, std::less<>>& required_tags = {},
-                                const std::set<std::string, std::less<>>& banned_tags   = {}) = 0; // request playing one of the registered animations with extra tag requirements.
+    virtual REL::Version getVersion()                                                     = 0;
+    virtual bool         isReady()                                                        = 0; // check if everything's loaded
+    virtual bool         precondition(const RE::Actor* attacker, const RE::Actor* victim) = 0; // applying kaputt-defined preconditions before examining yourself
+    virtual bool         submit(RE::Actor*              attacker,
+                                RE::Actor*              victim,
+                                const SubmitInfoStruct& submit_info = {})                 = 0; // request playing one of the registered animations with extra tag requirements.
 };
 
 [[nodiscard]] inline std::variant<KaputtAPI*, std::string> RequestKaputtAPI()

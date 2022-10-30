@@ -21,14 +21,6 @@ void               setStatusMessage(std::string_view msg)
     status_msg = msg;
 }
 
-std::optional<std::string_view> pickARulePopupContent()
-{
-    for (auto& [name, _] : getRule())
-        if (ImGui::Selectable(name.data()))
-            return name;
-    return std::nullopt;
-}
-
 int filterFilename(ImGuiInputTextCallbackData* data)
 {
     if (data->EventChar < 256 && (isalnum((char)data->EventChar) || ((char)data->EventChar == '_')))
@@ -36,112 +28,112 @@ int filterFilename(ImGuiInputTextCallbackData* data)
     return 1;
 }
 
-
-
-void drawPreconditionMenu()
+void header(const char* label, int columns = 4)
 {
-    static size_t selected_precond_idx = INT64_MAX;
-
-    auto  kaputt   = Kaputt::getSingleton();
-    auto& preconds = kaputt->preconds;
-
-    // Preconds
-    if (ImGui::BeginTable("precond config", 5))
+    if (ImGui::BeginTable(label, columns))
     {
         ImGui::TableNextColumn();
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Preconditions");
-        ImGui::SameLine();
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextDisabled("[?]");
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Conditions required for a killmove to happen\n");
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
-            ImGui::OpenPopup("Pick A Rule");
-        if (ImGui::BeginPopup("Pick A Rule"))
-        {
-            auto result = pickARulePopupContent();
-            if (result.has_value())
-            {
-                preconds.push_back(RuleInfo{result.value()});
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Remove", {-FLT_MIN, 0.f}) && (selected_precond_idx < preconds.size()))
-            preconds.erase(preconds.begin() + selected_precond_idx);
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Move Up", {-FLT_MIN, 0.f}) && (selected_precond_idx < preconds.size()) && (selected_precond_idx > 0))
-            std::swap(preconds[selected_precond_idx], preconds[selected_precond_idx - 1]), --selected_precond_idx;
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Move Down", {-FLT_MIN, 0.f}) && (selected_precond_idx < preconds.size() - 1))
-            std::swap(preconds[selected_precond_idx], preconds[selected_precond_idx + 1]), ++selected_precond_idx;
-
+        ImGui::Button(label, {-FLT_MIN, 0.f});
         ImGui::EndTable();
     }
+}
 
-    if (ImGui::BeginTable("preconds", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY))
+
+
+void drawSettingMenu()
+{
+    auto  kaputt         = Kaputt::getSingleton();
+    auto& precond_params = kaputt->precond_params;
+
+    ImGui::SetNextItemOpen(true);
+    if (ImGui::CollapsingHeader("Precondition"))
     {
-        ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 1.5);
-        ImGui::TableSetupColumn("Rule", ImGuiTableColumnFlags_WidthStretch, 0.2);
-        ImGui::TableSetupColumn("Comment", ImGuiTableColumnFlags_WidthStretch, 0.5);
-        ImGui::TableSetupColumn("Parameters", ImGuiTableColumnFlags_WidthStretch, 0.3);
-        ImGui::TableSetupColumn("Needs", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 3);
-        ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableHeadersRow();
-
-        size_t count = 0;
-        for (auto& rule : preconds)
+        if (ImGui::BeginTable("big tbl", 4))
         {
-            ImGui::PushID(count);
-
             ImGui::TableNextColumn();
-            ImGui::Checkbox("##enable", &rule.enabled);
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Essential Protection");
+            ImGui::TableNextColumn();
+            ImGui::RadioButton("enabled", (int*)&precond_params.essential_protection, (int)PreconditionParams::ESSENTIAL_PROT_ENUM::ENABLED);
+            ImGui::TableNextColumn();
+            ImGui::RadioButton("protected", (int*)&precond_params.essential_protection, (int)PreconditionParams::ESSENTIAL_PROT_ENUM::PROTECTED);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Player can still trigger killmoves on essential npcs.");
+            ImGui::TableNextColumn();
+            ImGui::RadioButton("disable", (int*)&precond_params.essential_protection, (int)PreconditionParams::ESSENTIAL_PROT_ENUM::DISABLED);
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::PushStyleColor(ImGuiCol_Text, rule.enabled ? ImVec4{0.5f, 0.5f, 1.f, 1.f} : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-            if (ImGui::Selectable(rule.type.c_str(), selected_precond_idx == count))
-                selected_precond_idx = count;
-            ImGui::PopStyleColor();
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip(rule.getHint().data());
+            ImGui::Text("Protected Protection");
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(precond_params.protected_protection ? "enabled" : "disabled", &precond_params.protected_protection);
+            ImGui::TableNextRow();
 
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Hostile Range");
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::InputTextWithHint("##comment", "Comment", &rule.comment);
-
+            ImGui::SliderFloat("##range", &precond_params.last_hostile_range, 0.f, 4096.f, "%.0f unit");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Hostile actors outside of this 'safe' range will be ignored.");
             ImGui::TableNextColumn();
-            rule.drawParams();
-
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("~= %.1f m", precond_params.last_hostile_range * 0.0142875f);
             ImGui::TableNextColumn();
-            if (ImGui::Selectable(rule.need_true ? "=true" : "=false"))
-                rule.need_true = !rule.need_true;
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("~= %.2f ft", precond_params.last_hostile_range * 0.046875f);
 
-            ImGui::PopID();
-            ++count;
+            ImGui::EndTable();
         }
+        if (ImGui::BeginTable("smol tbl", 2))
+        {
+            ImGui::TableSetupColumn("1", 0, 1);
+            ImGui::TableSetupColumn("2", 0, 3);
 
-        ImGui::EndTable();
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Skipped Races");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            drawTagsInputText("##Skipped Races", precond_params.skipped_race);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Races here won't participate in a killmove. Press Enter to apply changes.\n"
+                                  "The default value is the vanilla setting, due to height, being a boss or other considerations.");
+
+            ImGui::EndTable();
+        }
+    }
+
+    ImGui::SetNextItemOpen(true);
+    if (ImGui::CollapsingHeader("Tag Matching"))
+    {
     }
 }
 
 void drawTriggerMenu()
 {
     auto post_trigger = PostHitTrigger::getSingleton();
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("Vanilla"))
+    {
+    }
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Post-Hit"))
     {
         ImGui::Checkbox("Enabled", &post_trigger->enabled);
+
+        if (!post_trigger->enabled)
+            ImGui::BeginDisabled();
+
         ImGui::Separator();
+        ImGui::Spacing();
         ImGui::Checkbox("Bleedout Execution", &post_trigger->enable_bleedout_execution);
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("One-hit killmove triggering on a bleeding out actor.\n");
+            ImGui::SetTooltip("One-hit killmove triggering on a bleeding out actor, even when the damage is not enough to kill.\n");
+
         if (ImGui::BeginTable("chances", 4))
         {
             ImGui::TableSetupColumn("Chances");
@@ -151,234 +143,41 @@ void drawTriggerMenu()
             ImGui::TableHeadersRow();
 
             ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
             ImGui::Text("Killmove");
             for (auto i : {0, 1, 2})
             {
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-FLT_MIN);
-                ImGui::SliderFloat("##", &post_trigger->prob_km[i], 0.f, 1.f, "%.2f / 1");
+                ImGui::SliderFloat(fmt::format("##km{}", i).c_str(), &post_trigger->prob_km[i], 0.f, 1.f, "%.2f / 1.00");
             }
 
             ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
             ImGui::Text("Execution");
             for (auto i : {0, 1, 2})
             {
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-FLT_MIN);
-                ImGui::SliderFloat("##", &post_trigger->prob_exec[i], 0.f, 1.f, "%.2f / 1");
+                ImGui::SliderFloat(fmt::format("##exec{}", i).c_str(), &post_trigger->prob_exec[i], 0.f, 1.f, "%.2f / 1.00");
             }
 
             ImGui::EndTable();
         }
-    }
-}
 
-void drawFilterMenu()
-{
-    static size_t selected_tagger_idx = INT64_MAX;
-
-    auto  kaputt      = Kaputt::getSingleton();
-    auto& tagger_list = kaputt->tagger_list;
-
-    ImGui::BeginChild("note", {-FLT_MIN, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2}, true);
-    ImGui::Text("Weapon and race tags are automatically generated.");
-    ImGui::EndChild();
-
-    // Taggers
-    if (ImGui::BeginTable("tagger config", 5))
-    {
-        ImGui::TableNextColumn();
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Tagging Rules");
-        ImGui::SameLine();
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextDisabled("[?]");
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Each rule, if condition is met, will provide some required tags and banned tags.\n"
-                              "An animation can be selected if it has all required tags and none of banned tags.");
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
-            ImGui::OpenPopup("Pick A Rule");
-        if (ImGui::BeginPopup("Pick A Rule"))
-        {
-            auto result = pickARulePopupContent();
-            if (result.has_value())
-            {
-                tagger_list.push_back(Tagger{.rule = {result.value()}});
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Remove", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size()))
-            tagger_list.erase(tagger_list.begin() + selected_tagger_idx);
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Move Up", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size()) && (selected_tagger_idx > 0))
-            std::swap(tagger_list[selected_tagger_idx], tagger_list[selected_tagger_idx - 1]), --selected_tagger_idx;
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Move Down", {-FLT_MIN, 0.f}) && (selected_tagger_idx < tagger_list.size() - 1))
-            std::swap(tagger_list[selected_tagger_idx], tagger_list[selected_tagger_idx + 1]), ++selected_tagger_idx;
-
-        ImGui::EndTable();
-    }
-
-    if (ImGui::BeginTable("tagger", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY))
-    {
-        ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize());
-        ImGui::TableSetupColumn("Rule", ImGuiTableColumnFlags_WidthStretch, 0.4);
-        ImGui::TableSetupColumn("Parameters", ImGuiTableColumnFlags_WidthStretch, 0.3);
-        ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.3);
-        ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableHeadersRow();
-
-        size_t count = 0;
-        for (auto& tagger : tagger_list)
-        {
-            ImGui::PushID(count);
-
-            ImGui::TableNextColumn();
-            ImGui::Text("%d", count + 1);
-
-            ImGui::TableNextColumn();
-            ImGui::Checkbox("##enable", &tagger.rule.enabled);
-            ImGui::SameLine();
-            ImGui::AlignTextToFramePadding();
-            ImGui::PushStyleColor(ImGuiCol_Text, tagger.rule.enabled ? ImVec4{0.5f, 0.5f, 1.f, 1.f} : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-            if (ImGui::Selectable(tagger.rule.type.c_str(), selected_tagger_idx == count))
-                selected_tagger_idx = count;
-            ImGui::PopStyleColor();
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip(tagger.rule.getHint().data());
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::InputTextWithHint("##comment", "Comment", &tagger.rule.comment);
-
-            ImGui::TableNextColumn();
-            tagger.rule.drawParams();
-
-            ImGui::TableNextColumn();
-            ImGui::Checkbox("If True", &tagger.enable_true);
-            if (tagger.enable_true)
-            {
-                ImGui::PushID(1);
-                drawTagsInputText("Require", tagger.true_tags.required_tags);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Press Enter to apply.");
-                drawTagsInputText("Ban", tagger.true_tags.banned_tags);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Press Enter to apply.");
-                ImGui::PopID();
-            }
-            ImGui::Checkbox("If False", &tagger.enable_false);
-            if (tagger.enable_false)
-            {
-                ImGui::PushID(0);
-                drawTagsInputText("Require", tagger.false_tags.required_tags);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Press Enter to apply.");
-                drawTagsInputText("Ban", tagger.false_tags.banned_tags);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Press Enter to apply.");
-                ImGui::PopID();
-            }
-
-            ImGui::PopID();
-            ++count;
-        }
-
-        ImGui::EndTable();
+        if (!post_trigger->enabled)
+            ImGui::EndDisabled();
     }
 }
 
 void drawAnimationMenu()
 {
-    static std::string         filter_text = {};
-    static ImGuiTableSortSpecs sort_specs  = {};
-    static int                 filter_mode = 0; // 0 None 1 ID 2 Tags
+    static std::string filter_text = {};
+    static int         filter_mode = 0; // 0 None 1 ID 2 Tags
 
-    auto  kaputt      = Kaputt::getSingleton();
-    auto& tagexp_list = kaputt->tagexp_list;
-
-    // Tag Expansions
-    if (ImGui::BeginTable("tagexp config", 2))
-    {
-        ImGui::TableNextColumn();
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Tag Expansion");
-        ImGui::AlignTextToFramePadding();
-        ImGui::SameLine();
-        ImGui::TextDisabled("[?]");
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("If an animation has the tag on the left, then all tags on the right are provided.\n"
-                              "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.");
-
-        ImGui::TableNextColumn();
-        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
-            tagexp_list.try_emplace("from", StrSet{"to"});
-
-        ImGui::EndTable();
-    }
-
-    if (ImGui::BeginTable("tagexp", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
-                          {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
-    {
-        ImGui::TableSetupColumn("from", ImGuiTableColumnFlags_WidthStretch, 0.2);
-        ImGui::TableSetupColumn("arrow", ImGuiTableColumnFlags_WidthStretch, 0.05);
-        ImGui::TableSetupColumn("to", ImGuiTableColumnFlags_WidthStretch, 0.75);
-
-        std::string swap_from = {}, swap_to = {};
-        for (auto& [from, to] : tagexp_list)
-        {
-            ImGui::PushID(from.c_str());
-
-            ImGui::TableNextColumn();
-            std::string temp_from = from;
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            if (ImGui::InputText("##from", &temp_from, ImGuiInputTextFlags_EnterReturnsTrue))
-            {
-                swap_from = from;
-                swap_to   = temp_from;
-            }
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Press Enter to apply. It will be sorted.\n"
-                                  "If the tag already exists, nothing will happen.\n"
-                                  "Leave this empty and press Enter to delete the item.");
-
-            ImGui::TableNextColumn();
-            ImGui::Text("->");
-
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            drawTagsInputText("##to", to);
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Press Enter to apply.\n"
-                                  "The tags are sorted and seperated by SPACE.");
-
-            ImGui::PopID();
-        }
-        if (!swap_from.empty() && !tagexp_list.contains(swap_to))
-        {
-            if (swap_to.empty())
-                tagexp_list.erase(swap_from);
-            else
-            {
-                auto node  = tagexp_list.extract(swap_from);
-                node.key() = swap_to;
-                tagexp_list.insert(std::move(node));
-            }
-        }
-
-        ImGui::EndTable();
-    }
+    auto kaputt = Kaputt::getSingleton();
 
     // anim filters
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGui::Selectable("Animation List", true, ImGuiSelectableFlags_Disabled);
-    ImGui::Spacing();
-
     if (ImGui::BeginTable("filtertab", 4))
     {
         ImGui::TableSetupColumn("filter", ImGuiTableColumnFlags_WidthStretch, 0.5);
@@ -548,7 +347,7 @@ void drawCatMenu()
                 {
                     setStatusMessage(
                         kaputt->saveConfig(config_dir + "\\"s + save_name + ".json") ?
-                            "Filter saved as " + save_name :
+                            "Config saved as " + save_name :
                             "Something went wrong while saving " + save_name + ". Please check the log.");
                     ImGui::CloseCurrentPopup();
                 }
@@ -573,7 +372,7 @@ void drawCatMenu()
                                 {
                                     setStatusMessage(
                                         kaputt->loadConfig(file_path.string()) ?
-                                            "Loaded filter preset " + load_name :
+                                            "Loaded config preset " + load_name :
                                             "Something went wrong while loading " + load_name + ". Please check the log.");
                                     ImGui::CloseCurrentPopup();
                                 }
@@ -593,19 +392,14 @@ void drawCatMenu()
         ImGui::BeginChild("main", {0.f, -ImGui::GetFontSize() - 2.f});
         if (ImGui::BeginTabBar("##"))
         {
-            if (ImGui::BeginTabItem("Precondition"))
+            if (ImGui::BeginTabItem("Setting"))
             {
-                drawPreconditionMenu();
+                drawSettingMenu();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Trigger"))
             {
                 drawTriggerMenu();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Filter"))
-            {
-                drawFilterMenu();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Animation"))

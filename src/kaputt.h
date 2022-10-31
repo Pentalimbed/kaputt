@@ -26,6 +26,13 @@ struct PreconditionParams
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PreconditionParams, essential_protection, protected_protection, last_hostile_range, skipped_race)
 
+struct TaggingRefs
+{
+    RE::TESIdleForm* idle_kaputt_root    = nullptr;
+    RE::TESGlobal*   decap_requires_perk = nullptr;
+    RE::TESGlobal*   decap_percent       = nullptr;
+};
+
 class Kaputt : public KaputtAPI
 {
     friend void drawSettingMenu();
@@ -67,6 +74,11 @@ private:
     StrMap<StrSet> anim_custom_tags_map = {};
 
     PreconditionParams precond_params = {};
+    StrMap<StrSet>     tagexp_list    = {};
+
+    TaggingRefs tagging_refs = {};
+
+    bool loadTaggingParams();
 
 public:
     // INIT
@@ -82,7 +94,7 @@ public:
     // FILE IO
     bool loadAnims();
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Kaputt, anim_custom_tags_map, precond_params)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Kaputt, anim_custom_tags_map, precond_params, tagexp_list)
     bool loadConfig(std::string_view dir);
     bool saveConfig(std::string_view dir);
 

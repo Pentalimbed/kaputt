@@ -104,11 +104,6 @@ void drawSettingMenu()
             ImGui::EndTable();
         }
     }
-
-    ImGui::SetNextItemOpen(true);
-    if (ImGui::CollapsingHeader("Tag Matching"))
-    {
-    }
 }
 
 void drawTriggerMenu()

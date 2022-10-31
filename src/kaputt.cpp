@@ -10,12 +10,26 @@ namespace fs = std::filesystem;
 
 namespace kaputt
 {
+bool Kaputt::loadTaggingParams()
+{
+    tagging_refs.idle_kaputt_root    = RE::TESForm::LookupByEditorID<RE::TESIdleForm>("KaputtRoot");
+    tagging_refs.decap_requires_perk = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapReqDecapPerk");
+    tagging_refs.decap_percent       = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapPercent");
+    return tagging_refs.idle_kaputt_root && tagging_refs.decap_requires_perk && tagging_refs.decap_percent;
+}
 
 bool Kaputt::init()
 {
     logger::info("Initializing all Kaputt components.");
 
     bool all_ok = true;
+
+    if (!loadTaggingParams())
+    {
+        logger::error("Cannot find 'KaputtRoot', 'KapReqDecapPerk' or 'KapDecapPercent', mod disabled. Make sure KaputtVanillaKillmoves.esp is enabled in your load order.");
+        return false;
+    }
+
     all_ok &= loadAnims();
     all_ok &= loadConfig(def_config_path);
 
@@ -242,7 +256,107 @@ bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
 
 bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStruct& submit_info)
 {
-    std::vector<std::string_view> anims = listAnims();
+    std::vector<std::string_view> anims        = listAnims();
+    StrMap<StrSet>                exp_tags_map = {};
+    for (auto& edid : anims)
+    {
+        StrSet exp_tags  = {};
+        auto&  orig_tags = getTags(edid);
+
+        for (const auto& [from, to] : tagexp_list)
+            if (orig_tags.contains(from))
+                mergeSet(exp_tags, to);
+        mergeSet(exp_tags, orig_tags);
+
+        exp_tags_map.emplace(edid, std::move(exp_tags));
+    }
+
+    // skeleton tag
+    auto att_race_tag = "a_" + getSkeletonRace(attacker);
+    auto vic_race_tag = "v_" + getSkeletonRace(victim);
+    std::erase_if(anims, [&](auto& edid) {
+        return !(exp_tags_map.find(edid)->second.contains(att_race_tag) &&
+                 exp_tags_map.find(edid)->second.contains(vic_race_tag));
+    });
+
+    // IdleTaggerLOL
+    StrMap<bool>             item_results = {};
+    RE::ConditionCheckParams params(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
+    if (tagging_refs.idle_kaputt_root->childIdles)
+    {
+        for (auto form : *tagging_refs.idle_kaputt_root->childIdles)
+        {
+            if (anims.empty())
+                break;
+
+            auto             idle_form = form->As<RE::TESIdleForm>();
+            std::string_view idle_edid = idle_form->GetFormEditorID();
+            auto&            flags     = idle_form->data.flags;
+
+            bool result = true;
+            if (flags.all(RE::IDLE_DATA::Flag::kSequence)) // check each individually
+            {
+                bool or_cache = false;
+                for (auto cond_item = idle_form->conditions.head; cond_item != nullptr; cond_item = cond_item->next)
+                {
+                    auto& cond_data = cond_item->data;
+
+                    bool single_result;
+                    if (cond_data.functionData.function == RE::FUNCTION_DATA::FunctionID::kGetGraphVariableInt) // reference checked item
+                    {
+                        std::string_view ref_item = static_cast<RE::BSString*>(cond_data.functionData.params[0])->c_str();
+                        if (item_results.contains(ref_item))
+                        {
+                            single_result = item_results.find(ref_item)->second;
+                            single_result = single_result == (bool)(cond_data.comparisonValue.f);
+                            single_result = single_result == (cond_data.flags.opCode == RE::CONDITION_ITEM_DATA::OpCode::kEqualTo);
+                        }
+                        else
+                        {
+                            single_result = false;
+                            logger::warn("One condition from {} requires an unknown item {}.", idle_edid, ref_item);
+                        }
+                    }
+                    else
+                        single_result = cond_item->IsTrue(params);
+
+                    or_cache |= single_result;
+                    if (!cond_item->next || !cond_data.flags.isOR)
+                    {
+                        result &= or_cache;
+                        or_cache = false;
+                    }
+                }
+            }
+            else
+                result = idle_form->conditions(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
+
+            logger::debug("Tagger item {}, result {}", idle_edid, result);
+
+            if (auto tag_idx = idle_edid.find_first_of('_'); tag_idx != std::string::npos) // Has tag
+            {
+                std::string_view tag{&idle_edid[tag_idx + 1]};
+                std::string_view req_tag = result ? tag : std::string_view{};
+                std::string_view ban_tag = (!result && flags.all(RE::IDLE_DATA::Flag::kNoAttacking)) ? tag : std::string_view{};
+
+                if (!req_tag.empty() || !ban_tag.empty())
+                {
+                    if (flags.all(RE::IDLE_DATA::Flag::kBlocking))
+                        std::swap(req_tag, ban_tag);
+                    std::erase_if(anims, [&](auto edid) {
+                        return (!req_tag.empty() && !exp_tags_map.find(edid)->second.contains(req_tag)) ||
+                            (!ban_tag.empty() && exp_tags_map.find(edid)->second.contains(ban_tag));
+                    });
+                }
+            }
+
+            item_results.emplace(idle_form->GetFormEditorID(), result);
+        }
+    }
+
+    logger::debug("Filter over, {} of {} left", anims.size(), anim_tags_map.size());
+    if (anims.empty())
+        return false;
 
     auto edid = anims[effolkronium::random_static::get(0ull, anims.size() - 1)];
     if (auto idle = RE::TESForm::LookupByEditorID<RE::TESIdleForm>(edid); idle)
@@ -253,10 +367,10 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
         attacker->NotifyAnimationGraph("staggerStop");
         victim->NotifyAnimationGraph("staggerStop");
         if (victim->IsInRagdollState())
-        {
             victim->NotifyAnimationGraph("GetUpStart");
-            victim->NotifyAnimationGraph("GetUpExit");
-        }
+        if ((victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kGetUp) ||
+            (victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kQueued))
+            victim->NotifyAnimationGraph("GetUpEnd");
 
         playPairedIdle(idle, attacker, victim); // TODO: clear
         return true;

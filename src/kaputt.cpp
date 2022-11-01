@@ -12,10 +12,18 @@ namespace kaputt
 {
 bool Kaputt::loadTaggingParams()
 {
-    tagging_refs.idle_kaputt_root    = RE::TESForm::LookupByEditorID<RE::TESIdleForm>("KaputtRoot");
-    tagging_refs.decap_requires_perk = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapReqDecapPerk");
-    tagging_refs.decap_percent       = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapPercent");
-    return tagging_refs.idle_kaputt_root && tagging_refs.decap_requires_perk && tagging_refs.decap_percent;
+    tagging_refs.idle_kaputt_root        = RE::TESForm::LookupByEditorID<RE::TESIdleForm>("KaputtRoot");
+    tagging_refs.decap_requires_perk     = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapReqDecapPerk");
+    tagging_refs.decap_bleed_ignore_perk = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapBleedIgnoreDecapPerk");
+    tagging_refs.decap_percent           = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapPercent");
+    return tagging_refs.idle_kaputt_root && tagging_refs.decap_requires_perk && tagging_refs.decap_bleed_ignore_perk && tagging_refs.decap_percent;
+}
+
+void Kaputt::applyTaggingParams()
+{
+    tagging_refs.decap_requires_perk->value     = tagging_params.decap_requires_perk;
+    tagging_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk;
+    tagging_refs.decap_percent->value           = tagging_params.decap_percent;
 }
 
 bool Kaputt::init()
@@ -244,6 +252,17 @@ bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
     // Protected check
     if (precond_params.protected_protection && victim->IsProtected() && !attacker->IsPlayerRef())
         return false;
+    // Furniture anim check
+    if (isFurnitureAnimType(victim, RE::BSFurnitureMarker::AnimationType::kSit) && !precond_params.furn_sit)
+        return false;
+    if (isFurnitureAnimType(victim, RE::BSFurnitureMarker::AnimationType::kLean) && !precond_params.furn_lean)
+        return false;
+    if (isFurnitureAnimType(victim, RE::BSFurnitureMarker::AnimationType::kSleep) && !precond_params.furn_sleep)
+        return false;
+    // Height diff check
+    if (auto height_diff = victim->GetPositionZ() - attacker->GetPositionZ();
+        (height_diff < precond_params.height_diff_range[0]) || (height_diff > precond_params.height_diff_range[1]))
+        return false;
     // Last hostile check
     if (!isLastHostileInRange(attacker, victim, precond_params.last_hostile_range))
         return false;
@@ -331,7 +350,7 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
             else
                 result = idle_form->conditions(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
 
-            logger::debug("Tagger item {}, result {}", idle_edid, result);
+            // logger::debug("Tagger item {}, result {}", idle_edid, result);
 
             if (auto tag_idx = idle_edid.find_first_of('_'); tag_idx != std::string::npos) // Has tag
             {

@@ -61,9 +61,14 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
             stl::write_thunk_call<ProcessHitHook>();
 
             if (!Kaputt::getSingleton()->init())
-                setStatusMessage("Something went wrong during Kaputt initialization. Plugin is not disabled but you may check the log.");
+                break;
 
             integrateCatHub(); // Cathub
+            break;
+        case SKSE::MessagingInterface::kPostLoadGame:
+            logger::debug("Game: save loaded");
+            if (Kaputt::getSingleton()->isReady())
+                Kaputt::getSingleton()->applyTaggingParams();
             break;
         default:
             break;

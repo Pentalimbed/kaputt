@@ -50,6 +50,25 @@ bool getDetected(const RE::Actor* attacker, const RE::Actor* victim)
     return cond(params);
 }
 
+bool isFurnitureAnimType(const RE::Actor* actor, RE::BSFurnitureMarker::AnimationType type)
+{
+    static RE::TESConditionItem cond;
+    static std::once_flag       flag;
+    std::call_once(flag, [&]() {
+        cond.data.functionData.function = RE::FUNCTION_DATA::FunctionID::kIsFurnitureAnimType;
+        cond.data.flags.opCode          = RE::CONDITION_ITEM_DATA::OpCode::kEqualTo;
+        cond.data.object                = RE::CONDITIONITEMOBJECT::kSelf;
+        cond.data.comparisonValue.f     = 1.0f;
+    });
+
+    ConditionParam cond_param;
+    cond_param.i = static_cast<int32_t>(type);
+
+    cond.data.functionData.params[0] = std::bit_cast<void*>(cond_param);
+    RE::ConditionCheckParams params(const_cast<RE::TESObjectREFR*>(actor->As<RE::TESObjectREFR>()), nullptr);
+    return cond(params);
+}
+
 
 bool isLastHostileInRange(const RE::Actor* attacker, const RE::Actor* victim, float range)
 {

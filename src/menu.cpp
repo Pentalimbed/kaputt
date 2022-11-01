@@ -45,7 +45,7 @@ void drawSettingMenu()
     auto  kaputt         = Kaputt::getSingleton();
     auto& precond_params = kaputt->precond_params;
 
-    ImGui::SetNextItemOpen(true);
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Precondition"))
     {
         if (ImGui::BeginTable("big tbl", 4))
@@ -71,7 +71,19 @@ void drawSettingMenu()
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Hostile Range");
+            ImGui::Text("Furniture Animation");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Toggle killmoves when victim is on certain types of furnitures.");
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("sit", &precond_params.furn_sit);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("lean", &precond_params.furn_lean);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("sleep", &precond_params.furn_sleep);
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Last Enemy Range");
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::SliderFloat("##range", &precond_params.last_hostile_range, 0.f, 4096.f, "%.0f unit");
@@ -93,6 +105,15 @@ void drawSettingMenu()
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
+            ImGui::Text("Height Difference Range");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::InputFloat2("##height", precond_params.height_diff_range.data(), "%.1f");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("A vanilla check that restricts the difference of height (z coordinate) between attacker and victim.");
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
             ImGui::Text("Skipped Races");
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
@@ -101,6 +122,53 @@ void drawSettingMenu()
                 ImGui::SetTooltip("Races here won't participate in a killmove. Press Enter to apply changes.\n"
                                   "The default value is the vanilla setting, due to height, being a boss or other considerations.");
 
+            ImGui::EndTable();
+        }
+    }
+
+    auto& tagging_refs   = kaputt->tagging_refs;
+    auto& tagging_params = kaputt->tagging_params;
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("Filtering"))
+    {
+        if (ImGui::BeginTable("tagger1", 4))
+        {
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Decap Perk");
+            ImGui::TableNextColumn();
+            if (ImGui::RadioButton("required", tagging_params.decap_requires_perk && !tagging_params.decap_bleed_ignore_perk))
+            {
+                tagging_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = true;
+                tagging_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk = false;
+            }
+            ImGui::TableNextColumn();
+            if (ImGui::RadioButton("bleedout ignored", tagging_params.decap_requires_perk && tagging_params.decap_bleed_ignore_perk))
+            {
+                tagging_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = true;
+                tagging_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk = true;
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Bleedout killmoves ignores perk requirement.");
+            ImGui::TableNextColumn();
+            if (ImGui::RadioButton("ignored", !tagging_params.decap_requires_perk))
+                tagging_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = false;
+
+            ImGui::EndTable();
+        }
+        if (ImGui::BeginTable("tagger2", 2))
+        {
+            ImGui::TableSetupColumn("1", 0, 1);
+            ImGui::TableSetupColumn("2", 0, 3);
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Decap Chance");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::SliderFloat("##Decap Chance", &tagging_params.decap_percent, 0.f, 100.f, "%.0f %%"))
+                tagging_refs.decap_percent->value = tagging_params.decap_percent;
             ImGui::EndTable();
         }
     }
@@ -170,7 +238,81 @@ void drawAnimationMenu()
     static std::string filter_text = {};
     static int         filter_mode = 0; // 0 None 1 ID 2 Tags
 
-    auto kaputt = Kaputt::getSingleton();
+    auto  kaputt      = Kaputt::getSingleton();
+    auto& tagexp_list = kaputt->tagexp_list;
+
+    // Tag Expansions
+    if (ImGui::BeginTable("tagexp config", 2))
+    {
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Tag Expansion");
+        ImGui::AlignTextToFramePadding();
+        ImGui::SameLine();
+        ImGui::TextDisabled("[?]");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("If an animation has the tag on the left, then all tags on the right are provided.\n"
+                              "Tags will be expanded only once i.e. the tags on the right cannot be expanded furthermore.");
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Add", {-FLT_MIN, 0.f}))
+            tagexp_list.try_emplace("from", StrSet{"to"});
+
+        ImGui::EndTable();
+    }
+
+    if (ImGui::BeginTable("tagexp", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
+                          {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
+    {
+        ImGui::TableSetupColumn("from", ImGuiTableColumnFlags_WidthStretch, 0.2);
+        ImGui::TableSetupColumn("arrow", ImGuiTableColumnFlags_WidthStretch, 0.05);
+        ImGui::TableSetupColumn("to", ImGuiTableColumnFlags_WidthStretch, 0.75);
+
+        std::string swap_from = {}, swap_to = {};
+        for (auto& [from, to] : tagexp_list)
+        {
+            ImGui::PushID(from.c_str());
+
+            ImGui::TableNextColumn();
+            std::string temp_from = from;
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::InputText("##from", &temp_from, ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                swap_from = from;
+                swap_to   = temp_from;
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Press Enter to apply. It will be sorted.\n"
+                                  "If the tag already exists, nothing will happen.\n"
+                                  "Leave this empty and press Enter to delete the item.");
+
+            ImGui::TableNextColumn();
+            ImGui::Text("->");
+
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            drawTagsInputText("##to", to);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Press Enter to apply.\n"
+                                  "The tags are sorted and seperated by SPACE.");
+
+            ImGui::PopID();
+        }
+        if (!swap_from.empty() && !tagexp_list.contains(swap_to))
+        {
+            if (swap_to.empty())
+                tagexp_list.erase(swap_from);
+            else
+            {
+                auto node  = tagexp_list.extract(swap_from);
+                node.key() = swap_to;
+                tagexp_list.insert(std::move(node));
+            }
+        }
+
+        ImGui::EndTable();
+    }
+
 
     // anim filters
     if (ImGui::BeginTable("filtertab", 4))

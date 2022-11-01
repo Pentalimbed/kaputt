@@ -33,6 +33,7 @@ inline RE::TESObjectREFR* _getEquippedShield(RE::Actor* a_actor)
 
 bool isInPairedAnimation(const RE::Actor* actor);
 bool getDetected(const RE::Actor* attacker, const RE::Actor* victim);
+bool isFurnitureAnimType(const RE::Actor* actor, RE::BSFurnitureMarker::AnimationType type);
 
 /* ------------- CUSTOM FUNC ------------- */
 

@@ -290,6 +290,14 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
         exp_tags_map.emplace(edid, std::move(exp_tags));
     }
 
+    // manual req and ban
+    std::erase_if(anims, [&](auto& edid) {
+        return std::ranges::any_of(tagging_params.required_tags, [&](auto& tag) { return !exp_tags_map.find(edid)->second.contains(tag); }) &&
+            std::ranges::any_of(submit_info.required_tags, [&](auto& tag) { return !exp_tags_map.find(edid)->second.contains(tag); }) &&
+            std::ranges::any_of(tagging_params.banned_tags, [&](auto& tag) { return exp_tags_map.find(edid)->second.contains(tag); }) &&
+            std::ranges::any_of(submit_info.banned_tags, [&](auto& tag) { return exp_tags_map.find(edid)->second.contains(tag); });
+    });
+
     // skeleton tag
     auto att_race_tag = "a_" + getSkeletonRace(attacker);
     auto vic_race_tag = "v_" + getSkeletonRace(victim);

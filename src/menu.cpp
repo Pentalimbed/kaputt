@@ -72,6 +72,8 @@ void drawSettingMenu()
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Furniture Animation");
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Toggle killmoves when victim is on certain types of furnitures.");
             ImGui::TableNextColumn();
@@ -84,11 +86,13 @@ void drawSettingMenu()
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Last Enemy Range");
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Hostile actors outside of this 'safe' range will be ignored.");
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::SliderFloat("##range", &precond_params.last_hostile_range, 0.f, 4096.f, "%.0f unit");
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Hostile actors outside of this 'safe' range will be ignored.");
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
             ImGui::Text("~= %.1f m", precond_params.last_hostile_range * 0.0142875f);
@@ -105,22 +109,28 @@ void drawSettingMenu()
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Height Difference Range");
+            ImGui::Text("Height Difference");
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("A vanilla check that restricts the difference of height (z coordinate) between attacker and victim.");
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::InputFloat2("##height", precond_params.height_diff_range.data(), "%.1f");
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("A vanilla check that restricts the difference of height (z coordinate) between attacker and victim.");
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Skipped Races");
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Races here won't participate in a killmove.\n"
+                                  "The default value is the vanilla setting, due to scale, being a boss or other considerations.");
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             drawTagsInputText("##Skipped Races", precond_params.skipped_race);
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Races here won't participate in a killmove. Press Enter to apply changes.\n"
-                                  "The default value is the vanilla setting, due to height, being a boss or other considerations.");
+                ImGui::SetTooltip("Press Enter to apply.");
 
             ImGui::EndTable();
         }
@@ -130,8 +140,33 @@ void drawSettingMenu()
     auto& tagging_params = kaputt->tagging_params;
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-    if (ImGui::CollapsingHeader("Filtering"))
+    if (ImGui::CollapsingHeader("Animation Filtering"))
     {
+        if (ImGui::BeginTable("tagger0", 2))
+        {
+            ImGui::TableSetupColumn("1", 0, 1);
+            ImGui::TableSetupColumn("2", 0, 3);
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("+Required Tags");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            drawTagsInputText("##reqtag", tagging_params.required_tags);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Press Enter to apply.");
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("+Banned Tags");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            drawTagsInputText("##bantag", tagging_params.banned_tags);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Press Enter to apply.");
+
+            ImGui::EndTable();
+        }
         if (ImGui::BeginTable("tagger1", 4))
         {
             ImGui::TableNextColumn();

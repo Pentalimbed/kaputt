@@ -164,7 +164,7 @@ bool isLastHostileInRange(const RE::Actor* attacker, const RE::Actor* victim, fl
 
         auto actor = actor_handle.get().get();
 
-        if ((actor == attacker) || (actor == victim) || actor->IsDead())
+        if ((actor == attacker) || (actor == victim) || actor->IsDead() || actor->AsActorState()->IsBleedingOut())
             continue;
 
         float dist = actor->GetPosition().GetDistance(attacker->GetPosition());

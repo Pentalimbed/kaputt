@@ -10,7 +10,7 @@ namespace kaputt
 bool drawTagsInputText(std::string_view label, StrSet& tags)
 {
     auto tagstr = joinTags(tags);
-    auto result = ImGui::InputText(label.data(), &tagstr, ImGuiInputTextFlags_EnterReturnsTrue);
+    auto result = ImGui::InputText(label.data(), &tagstr);
     if (result)
         tags = splitTags(tagstr);
     return result;

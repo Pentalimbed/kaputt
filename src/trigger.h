@@ -9,10 +9,11 @@ class PostHitTrigger
 {
 public:
     // PARAMS
-    bool enabled = true;
+    bool enabled = false;
 
     bool                 enable_bleedout_execution = false;
     bool                 enable_getup_execution    = false;
+    bool                 instakill                 = false;
     std::array<float, 3> prob_km                   = {100.f, 100.f, 100.f}; // p2n, n2p, n2n
     std::array<float, 3> prob_exec                 = {100.f, 100.f, 100.f};
 
@@ -28,7 +29,7 @@ public:
 private:
     bool lottery(RE::Actor* attacker, RE::Actor* victim, bool is_exec);
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PostHitTrigger, enable_bleedout_execution, enable_getup_execution, prob_km, prob_exec)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PostHitTrigger, enabled, enable_bleedout_execution, enable_getup_execution, instakill, prob_km, prob_exec)
 
 class SneakTrigger
 {
@@ -48,5 +49,5 @@ public:
 
     void process(uint32_t scancode);
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SneakTrigger, need_crouch, key_scancode)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SneakTrigger, enabled, need_crouch, key_scancode)
 } // namespace kaputt

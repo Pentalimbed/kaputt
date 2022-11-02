@@ -17,7 +17,12 @@ bool Kaputt::loadTaggingParams()
     tagging_refs.decap_requires_perk     = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapReqDecapPerk");
     tagging_refs.decap_bleed_ignore_perk = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapBleedIgnoreDecapPerk");
     tagging_refs.decap_percent           = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapPercent");
-    return tagging_refs.idle_kaputt_root && tagging_refs.decap_requires_perk && tagging_refs.decap_bleed_ignore_perk && tagging_refs.decap_percent;
+    tagging_refs.decap_use_chance        = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapUseChance");
+    return tagging_refs.idle_kaputt_root &&
+        tagging_refs.decap_requires_perk &&
+        tagging_refs.decap_bleed_ignore_perk &&
+        tagging_refs.decap_use_chance &&
+        tagging_refs.decap_percent;
 }
 
 void Kaputt::applyTaggingParams()
@@ -25,6 +30,7 @@ void Kaputt::applyTaggingParams()
     tagging_refs.decap_requires_perk->value     = tagging_params.decap_requires_perk;
     tagging_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk;
     tagging_refs.decap_percent->value           = tagging_params.decap_percent;
+    tagging_refs.decap_use_chance->value        = tagging_params.decap_use_chance;
 }
 
 bool Kaputt::init()
@@ -365,22 +371,20 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
             else
                 result = idle_form->conditions(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
 
-            logger::debug("Tagger item {}, result {}", idle_edid, result);
-
             if (auto tag_idx = idle_edid.find_first_of('_'); tag_idx != std::string::npos) // Has tag
             {
                 std::string_view tag{&idle_edid[tag_idx + 1]};
                 std::string_view req_tag = result ? tag : std::string_view{};
                 std::string_view ban_tag = (!result && flags.all(RE::IDLE_DATA::Flag::kNoAttacking)) ? tag : std::string_view{};
 
-                if (!req_tag.empty() || !ban_tag.empty())
+                if (!(req_tag.empty() && ban_tag.empty()))
                 {
                     if (flags.all(RE::IDLE_DATA::Flag::kBlocking))
                         std::swap(req_tag, ban_tag);
 
-                    if ((req_tag == "decap") &&
-                        std::ranges::none_of(anims, [&](auto edid) { return exp_tags_map.find(edid)->second.contains("decap"); })) // special treatment for decap
-                        continue;
+                    // if ((req_tag == "decap") &&
+                    //     std::ranges::none_of(anims, [&](auto edid) { return exp_tags_map.find(edid)->second.contains("decap"); })) // special treatment for decap
+                    //     continue;
 
                     std::erase_if(anims, [&](auto edid) {
                         return (!req_tag.empty() && !exp_tags_map.find(edid)->second.contains(req_tag)) ||
@@ -388,6 +392,8 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
                     });
                 }
             }
+
+            logger::debug("Tagger item {}, result {}, {} left", idle_edid, result, anims.size());
 
             item_results.emplace(idle_form->GetFormEditorID(), result);
         }
@@ -405,11 +411,12 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
         victim->NotifyAnimationGraph("attackStop");
         attacker->NotifyAnimationGraph("staggerStop");
         victim->NotifyAnimationGraph("staggerStop");
-        if (victim->IsInRagdollState())
-            victim->NotifyAnimationGraph("GetUpStart");
         if ((victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kGetUp) ||
             (victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kQueued))
+        {
+            victim->AsActorState()->actorState1.knockState = RE::KNOCK_STATE_ENUM::kNormal;
             victim->NotifyAnimationGraph("GetUpEnd");
+        }
 
         playPairedIdle(idle, attacker, victim);
         return true;

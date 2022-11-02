@@ -21,9 +21,10 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
     // logger::debug("{} hitting {}", attacker->GetName(), victim->GetName());
 
     // 0-no 1-exec 2-killmove
-    // execution check
+    // bleedout check
     uint8_t do_trigger = enable_bleedout_execution && victim->AsActorState()->IsBleedingOut();
-    bool    getting_up = (victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kGetUp) ||
+    // getup check
+    bool getting_up = (victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kGetUp) ||
         (victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kQueued);
     if (!do_trigger)
         do_trigger = enable_getup_execution && getting_up;
@@ -44,9 +45,13 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
     if (!lottery(attacker, victim, do_trigger == 1))
         return true;
 
+    if ((do_trigger == 1) && instakill)
+        hit_data.totalDamage = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) / getDamageMult(victim->IsPlayerRef()) + 10;
+
     if (!kap->submit(attacker, victim))
         return true;
-    return !getting_up;
+
+    return true;
 }
 
 bool PostHitTrigger::lottery(RE::Actor* attacker, RE::Actor* victim, bool is_exec)

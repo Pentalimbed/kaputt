@@ -45,6 +45,7 @@ struct TaggingRefs // todo TESGlobalParams
     RE::TESGlobal*   decap_requires_perk     = nullptr;
     RE::TESGlobal*   decap_bleed_ignore_perk = nullptr;
     RE::TESGlobal*   decap_percent           = nullptr;
+    RE::TESGlobal*   decap_use_chance        = nullptr;
 };
 
 struct TaggingParams
@@ -53,9 +54,10 @@ struct TaggingParams
     StrSet banned_tags             = {};
     bool   decap_requires_perk     = true;
     bool   decap_bleed_ignore_perk = true;
+    bool   decap_use_chance        = false;
     float  decap_percent           = 30.f;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TaggingParams, required_tags, banned_tags, decap_requires_perk, decap_bleed_ignore_perk, decap_percent);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TaggingParams, required_tags, banned_tags, decap_requires_perk, decap_bleed_ignore_perk, decap_use_chance, decap_percent);
 
 class Kaputt : public KaputtAPI
 {

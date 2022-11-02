@@ -57,6 +57,8 @@ void drawSettingMenu()
             ImGui::RadioButton("enabled", (int*)&precond_params.essential_protection, (int)PreconditionParams::ESSENTIAL_PROT_ENUM::ENABLED);
             ImGui::TableNextColumn();
             ImGui::RadioButton("protected", (int*)&precond_params.essential_protection, (int)PreconditionParams::ESSENTIAL_PROT_ENUM::PROTECTED);
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Player can still trigger killmoves on essential npcs.");
             ImGui::TableNextColumn();
@@ -71,7 +73,7 @@ void drawSettingMenu()
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Furniture Animation");
+            ImGui::Text("Furniture Toggle");
             ImGui::SameLine();
             ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
@@ -129,8 +131,6 @@ void drawSettingMenu()
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             drawTagsInputText("##Skipped Races", precond_params.skipped_race);
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Press Enter to apply.");
 
             ImGui::EndTable();
         }
@@ -153,8 +153,6 @@ void drawSettingMenu()
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             drawTagsInputText("##reqtag", tagging_params.required_tags);
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Press Enter to apply.");
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
@@ -162,8 +160,6 @@ void drawSettingMenu()
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             drawTagsInputText("##bantag", tagging_params.banned_tags);
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Press Enter to apply.");
 
             ImGui::EndTable();
         }
@@ -184,6 +180,8 @@ void drawSettingMenu()
                 tagging_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = true;
                 tagging_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk = true;
             }
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Bleedout killmoves ignores perk requirement.");
             ImGui::TableNextColumn();
@@ -192,18 +190,36 @@ void drawSettingMenu()
 
             ImGui::EndTable();
         }
-        if (ImGui::BeginTable("tagger2", 2))
+        if (ImGui::BeginTable("tagger2", 3))
         {
             ImGui::TableSetupColumn("1", 0, 1);
-            ImGui::TableSetupColumn("2", 0, 3);
+            ImGui::TableSetupColumn("2", 0, 1);
+            ImGui::TableSetupColumn("3", 0, 2);
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Decap Chance");
+
+            ImGui::TableNextColumn();
+            if (ImGui::Checkbox("use chance", &tagging_params.decap_use_chance))
+                tagging_refs.decap_use_chance->value = tagging_params.decap_use_chance;
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Don't determine decap chance explicitly.\n"
+                                  "Sometimes there aren't proper decap animations for the scene. Disabling this makes non-decap animations still playable.");
+
+            if (!tagging_params.decap_use_chance)
+                ImGui::BeginDisabled();
+
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             if (ImGui::SliderFloat("##Decap Chance", &tagging_params.decap_percent, 0.f, 100.f, "%.0f %%"))
                 tagging_refs.decap_percent->value = tagging_params.decap_percent;
+
+            if (!tagging_params.decap_use_chance)
+                ImGui::EndDisabled();
+
             ImGui::EndTable();
         }
     }
@@ -233,18 +249,32 @@ void drawTriggerMenu()
             ImGui::EndTable();
         }
 
-        if (ImGui::BeginTable("exec", 2))
+        if (!post_trigger->enabled)
+            ImGui::BeginDisabled();
+
+        if (ImGui::BeginTable("exec", 3))
         {
             ImGui::TableNextColumn();
             ImGui::Checkbox("Bleedout Execution", &post_trigger->enable_bleedout_execution);
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("One-hit killmove triggering on a bleeding out actor, even when the damage is not enough to kill.\n");
 
             ImGui::TableNextColumn();
             ImGui::Checkbox("Get Up Execution", &post_trigger->enable_getup_execution);
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("One-hit killmove triggering on a actor recovering from ragdoll, even when the damage is not enough to kill.\n"
                                   "Ragdoll executions are disabled due to them being too buggy to handle.");
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Execution Instakill", &post_trigger->instakill);
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Kills victim instantly even if the execution animation somehow didn't play.");
 
             ImGui::EndTable();
         }
@@ -280,12 +310,15 @@ void drawTriggerMenu()
             ImGui::EndTable();
         }
 
+        if (!post_trigger->enabled)
+            ImGui::EndDisabled();
+
         ImGui::Unindent();
         ImGui::PopID();
     }
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-    if (ImGui::CollapsingHeader("Sneak Key"))
+    if (ImGui::CollapsingHeader("Sneak Keypress"))
     {
         ImGui::PushID("sneak");
         ImGui::Indent();
@@ -301,10 +334,23 @@ void drawTriggerMenu()
             ImGui::EndTable();
         }
 
-        ImGui::InputScalar("Key (Scancode)", ImGuiDataType_U32, &sneak_trigger->key_scancode);
-        ImGui::SameLine();
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text(scanCode2String(sneak_trigger->key_scancode).c_str());
+        if (!sneak_trigger->enabled)
+            ImGui::BeginDisabled();
+
+        if (ImGui::BeginTable("key", 2))
+        {
+            ImGui::TableNextColumn();
+            ImGui::InputScalar("Key (Scancode)", ImGuiDataType_U32, &sneak_trigger->key_scancode);
+
+            ImGui::TableNextColumn();
+            if (ImGui::BeginTable("key name", 1, ImGuiTableFlags_Borders))
+            {
+                ImGui::TableNextColumn();
+                ImGui::Text(scanCode2String(sneak_trigger->key_scancode).c_str());
+                ImGui::EndTable();
+            }
+            ImGui::EndTable();
+        }
 
         ImGui::Checkbox("Need Crouching", &sneak_trigger->need_crouch);
         ImGui::SameLine();
@@ -312,6 +358,9 @@ void drawTriggerMenu()
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("If disabled, you can trigger this while standing as long as you are not detected.\n"
                               "The animation will be different though.");
+
+        if (!sneak_trigger->enabled)
+            ImGui::EndDisabled();
 
         ImGui::PopID();
         ImGui::Unindent();
@@ -377,9 +426,6 @@ void drawAnimationMenu()
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             drawTagsInputText("##to", to);
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Press Enter to apply.\n"
-                                  "The tags are sorted and seperated by SPACE.");
 
             ImGui::PopID();
         }

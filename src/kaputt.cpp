@@ -13,24 +13,24 @@ namespace kaputt
 {
 bool Kaputt::loadTaggingParams()
 {
-    tagging_refs.idle_kaputt_root        = RE::TESForm::LookupByEditorID<RE::TESIdleForm>("KaputtRoot");
-    tagging_refs.decap_requires_perk     = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapReqDecapPerk");
-    tagging_refs.decap_bleed_ignore_perk = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapBleedIgnoreDecapPerk");
-    tagging_refs.decap_percent           = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapPercent");
-    tagging_refs.decap_use_chance        = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapUseChance");
-    return tagging_refs.idle_kaputt_root &&
-        tagging_refs.decap_requires_perk &&
-        tagging_refs.decap_bleed_ignore_perk &&
-        tagging_refs.decap_use_chance &&
-        tagging_refs.decap_percent;
+    required_refs.idle_kaputt_root        = RE::TESForm::LookupByEditorID<RE::TESIdleForm>("KaputtRoot");
+    required_refs.decap_requires_perk     = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapReqDecapPerk");
+    required_refs.decap_bleed_ignore_perk = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapBleedIgnoreDecapPerk");
+    required_refs.decap_percent           = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapPercent");
+    required_refs.decap_use_chance        = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapUseChance");
+    return required_refs.idle_kaputt_root &&
+        required_refs.decap_requires_perk &&
+        required_refs.decap_bleed_ignore_perk &&
+        required_refs.decap_use_chance &&
+        required_refs.decap_percent;
 }
 
 void Kaputt::applyTaggingParams()
 {
-    tagging_refs.decap_requires_perk->value     = tagging_params.decap_requires_perk;
-    tagging_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk;
-    tagging_refs.decap_percent->value           = tagging_params.decap_percent;
-    tagging_refs.decap_use_chance->value        = tagging_params.decap_use_chance;
+    required_refs.decap_requires_perk->value     = tagging_params.decap_requires_perk;
+    required_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk;
+    required_refs.decap_percent->value           = tagging_params.decap_percent;
+    required_refs.decap_use_chance->value        = tagging_params.decap_use_chance;
 }
 
 bool Kaputt::init()
@@ -321,11 +321,11 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
     });
 
     // IdleTaggerLOL
-    if (tagging_refs.idle_kaputt_root->childIdles)
+    if (required_refs.idle_kaputt_root->childIdles)
     {
         StrMap<bool>             item_results = {};
         RE::ConditionCheckParams params(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
-        for (auto form : *tagging_refs.idle_kaputt_root->childIdles)
+        for (auto form : *required_refs.idle_kaputt_root->childIdles)
         {
             if (anims.empty())
                 break;
@@ -343,7 +343,7 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
                     auto& cond_data = cond_item->data;
 
                     bool single_result;
-                    if (cond_data.functionData.function == RE::FUNCTION_DATA::FunctionID::kGetGraphVariableInt) // reference checked item
+                    if (cond_data.flags.swapTarget && (cond_data.functionData.function == RE::FUNCTION_DATA::FunctionID::kGetGraphVariableInt)) // reference checked item
                     {
                         std::string_view ref_item = static_cast<RE::BSString*>(cond_data.functionData.params[0])->c_str();
                         if (item_results.contains(ref_item))

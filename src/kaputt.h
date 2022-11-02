@@ -7,6 +7,11 @@
 namespace kaputt
 {
 
+struct MiscParams
+{
+    bool disable_vanilla = true;
+};
+
 struct PreconditionParams
 {
     enum class ESSENTIAL_PROT_ENUM : int
@@ -39,7 +44,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
     height_diff_range,
     skipped_race)
 
-struct TaggingRefs // todo TESGlobalParams
+struct RequiredRefs
 {
     RE::TESIdleForm* idle_kaputt_root        = nullptr;
     RE::TESGlobal*   decap_requires_perk     = nullptr;
@@ -103,7 +108,7 @@ private:
     TaggingParams      tagging_params = {};
     StrMap<StrSet>     tagexp_list    = {};
 
-    TaggingRefs tagging_refs = {};
+    RequiredRefs required_refs = {};
 
     bool loadTaggingParams();
 

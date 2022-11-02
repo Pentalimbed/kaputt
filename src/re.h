@@ -77,7 +77,10 @@ inline bool isGamePaused()
     return !UI || UI->GameIsPaused();
 }
 
-inline bool animPlayable(const RE::Actor* actor) { return actor->Is3DLoaded() && !actor->IsDead() && !isInPairedAnimation(actor) && !actor->IsOnMount() && !actor->IsInRagdollState(); }
+inline bool animPlayable(const RE::Actor* actor)
+{
+    return actor->Is3DLoaded() && !actor->IsDisabled() && !actor->IsDead() && !isInPairedAnimation(actor) && !actor->IsOnMount() && !actor->IsInRagdollState();
+}
 
 RE::Actor* getNearestNPC(RE::Actor* origin, float max_range = 256);
 bool       isLastHostileInRange(const RE::Actor* attacker, const RE::Actor* victim, float range);

@@ -122,7 +122,7 @@ void drawSettingMenu()
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Skipped Races");
+            ImGui::Text("Excluded Races");
             ImGui::SameLine();
             ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
@@ -136,7 +136,7 @@ void drawSettingMenu()
         }
     }
 
-    auto& tagging_refs   = kaputt->tagging_refs;
+    auto& required_refs  = kaputt->required_refs;
     auto& tagging_params = kaputt->tagging_params;
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -171,14 +171,14 @@ void drawSettingMenu()
             ImGui::TableNextColumn();
             if (ImGui::RadioButton("required", tagging_params.decap_requires_perk && !tagging_params.decap_bleed_ignore_perk))
             {
-                tagging_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = true;
-                tagging_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk = false;
+                required_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = true;
+                required_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk = false;
             }
             ImGui::TableNextColumn();
             if (ImGui::RadioButton("bleedout ignored", tagging_params.decap_requires_perk && tagging_params.decap_bleed_ignore_perk))
             {
-                tagging_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = true;
-                tagging_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk = true;
+                required_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = true;
+                required_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk = true;
             }
             ImGui::SameLine();
             ImGui::TextDisabled("[?]");
@@ -186,7 +186,7 @@ void drawSettingMenu()
                 ImGui::SetTooltip("Bleedout killmoves ignores perk requirement.");
             ImGui::TableNextColumn();
             if (ImGui::RadioButton("ignored", !tagging_params.decap_requires_perk))
-                tagging_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = false;
+                required_refs.decap_requires_perk->value = tagging_params.decap_requires_perk = false;
 
             ImGui::EndTable();
         }
@@ -202,7 +202,7 @@ void drawSettingMenu()
 
             ImGui::TableNextColumn();
             if (ImGui::Checkbox("use chance", &tagging_params.decap_use_chance))
-                tagging_refs.decap_use_chance->value = tagging_params.decap_use_chance;
+                required_refs.decap_use_chance->value = tagging_params.decap_use_chance;
             ImGui::SameLine();
             ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
@@ -215,7 +215,7 @@ void drawSettingMenu()
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             if (ImGui::SliderFloat("##Decap Chance", &tagging_params.decap_percent, 0.f, 100.f, "%.0f %%"))
-                tagging_refs.decap_percent->value = tagging_params.decap_percent;
+                required_refs.decap_percent->value = tagging_params.decap_percent;
 
             if (!tagging_params.decap_use_chance)
                 ImGui::EndDisabled();
@@ -228,7 +228,7 @@ void drawSettingMenu()
 void drawTriggerMenu()
 {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-    if (ImGui::CollapsingHeader("Vanilla"))
+    if (ImGui::CollapsingHeader("Vanilla-ish"))
     {
         ImGui::Indent();
         ImGui::PushID("vanilla");
@@ -240,7 +240,7 @@ void drawTriggerMenu()
         if (ImGui::BeginTable("desc", 1, ImGuiTableFlags_Borders))
         {
             ImGui::TableNextColumn();
-            ImGui::Text("Like vanilla, triggers killmoves when an supposedly lethal attack is initiated.");
+            ImGui::Text("Triggers killmoves when an supposedly lethal attack is initiated.");
             ImGui::EndTable();
         }
 

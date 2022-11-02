@@ -230,6 +230,49 @@ void drawTriggerMenu()
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Vanilla"))
     {
+        ImGui::Indent();
+        ImGui::PushID("vanilla");
+
+        auto vanilla_trigger = VanillaTrigger::getSingleton();
+
+        ImGui::Checkbox("Enabled", &vanilla_trigger->enabled);
+        ImGui::SameLine();
+        if (ImGui::BeginTable("desc", 1, ImGuiTableFlags_Borders))
+        {
+            ImGui::TableNextColumn();
+            ImGui::Text("Like vanilla, triggers killmoves when an supposedly lethal attack is initiated.");
+            ImGui::EndTable();
+        }
+
+        if (!vanilla_trigger->enabled)
+            ImGui::BeginDisabled();
+
+        if (ImGui::BeginTable("chances", 4))
+        {
+            ImGui::TableSetupColumn("##Chances");
+            ImGui::TableSetupColumn("Player->NPC");
+            ImGui::TableSetupColumn("NPC->Player");
+            ImGui::TableSetupColumn("NPC->NPC");
+            ImGui::TableHeadersRow();
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Chances");
+            for (auto i : {0, 1, 2})
+            {
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SliderFloat(fmt::format("##km{}", i).c_str(), &vanilla_trigger->prob[i], 0.f, 100.f, "%.0f %%");
+            }
+
+            ImGui::EndTable();
+        }
+
+        if (!vanilla_trigger->enabled)
+            ImGui::EndDisabled();
+
+        ImGui::Unindent();
+        ImGui::PopID();
     }
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);

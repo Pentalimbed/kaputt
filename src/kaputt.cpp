@@ -189,7 +189,7 @@ bool Kaputt::loadConfig(std::string_view dir)
         try
         {
             from_json(j, *this);
-            // triggers
+            from_json(j["triggers"]["vanilla"], *VanillaTrigger::getSingleton());
             from_json(j["triggers"]["post_hit"], *PostHitTrigger::getSingleton());
             from_json(j["triggers"]["sneak"], *SneakTrigger::getSingleton());
         }
@@ -229,6 +229,7 @@ bool Kaputt::saveConfig(std::string_view dir)
 
         json j = *this;
         j.emplace("triggers", json{});
+        j["triggers"].emplace("vanilla", *VanillaTrigger::getSingleton());
         j["triggers"].emplace("post_hit", *PostHitTrigger::getSingleton());
         j["triggers"].emplace("sneak", *SneakTrigger::getSingleton());
         ostream << j.dump(4);

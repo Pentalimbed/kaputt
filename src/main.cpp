@@ -66,6 +66,7 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
 
                 logger::info("Installing hook...");
                 stl::write_thunk_call<ProcessHitHook>();
+                stl::write_thunk_call<AttackActionHook>();
 
                 logger::info("Registering event sinks...");
                 InputEventSink::RegisterSink();
@@ -74,6 +75,9 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
             break;
         case SKSE::MessagingInterface::kPostLoadGame:
             logger::debug("Game: save loaded");
+
+            PlayerAnimGraphEventSink::RegisterSink();
+
             if (Kaputt::getSingleton()->isReady())
                 Kaputt::getSingleton()->applyTaggingParams();
             break;

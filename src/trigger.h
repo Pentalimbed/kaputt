@@ -5,6 +5,30 @@
 namespace kaputt
 {
 
+class VanillaTrigger
+{
+public:
+    // PARAMS
+    bool enabled = true;
+
+    std::array<float, 3> prob = {100.f, 100.f, 100.f}; // p2n, n2p, n2n
+
+    // FUNC
+    static VanillaTrigger* getSingleton()
+    {
+        static VanillaTrigger trigger;
+        return std::addressof(trigger);
+    }
+
+    bool process(RE::TESActionData* action_data); // for npc
+    void process();                               // for player
+
+private:
+    bool process(RE::Actor* attacker, RE::Actor* victim);
+    bool lottery(RE::Actor* attacker, RE::Actor* victim);
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(VanillaTrigger, enabled, prob)
+
 class PostHitTrigger
 {
 public:

@@ -20,6 +20,11 @@ void ProcessHitHook::thunk(RE::Actor* a_victim, RE::HitData& a_hitData)
         return func(a_victim, a_hitData);
 }
 
+bool AttackActionHook::thunk(RE::TESActionData* a_actionData)
+{
+    return VanillaTrigger::getSingleton()->process(a_actionData) && func(a_actionData);
+}
+
 EventResult InputEventSink::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>* a_eventSource)
 {
     if (isGamePaused())
@@ -53,6 +58,20 @@ EventResult InputEventSink::ProcessEvent(RE::InputEvent* const* a_event, RE::BST
 
             SneakTrigger::getSingleton()->process(key);
         }
+    return RE::BSEventNotifyControl::kContinue;
+}
+
+EventResult PlayerAnimGraphEventSink::ProcessEvent(const RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
+{
+    if (!a_event || !a_eventSource)
+        return RE::BSEventNotifyControl::kContinue;
+
+    // cheese
+    std::string tag(a_event->tag);
+    std::transform(tag.begin(), tag.end(), tag.begin(), tolower);
+    if (tag.contains("attackstart") || tag.contains("attack_start"))
+        VanillaTrigger::getSingleton()->process();
+
     return RE::BSEventNotifyControl::kContinue;
 }
 
@@ -99,10 +118,29 @@ bool isFurnitureAnimType(const RE::Actor* actor, RE::BSFurnitureMarker::Animatio
     });
 
     ConditionParam cond_param;
-    cond_param.i = static_cast<int32_t>(type);
-
+    cond_param.i                     = static_cast<int32_t>(type);
     cond.data.functionData.params[0] = std::bit_cast<void*>(cond_param);
+
     RE::ConditionCheckParams params(const_cast<RE::TESObjectREFR*>(actor->As<RE::TESObjectREFR>()), nullptr);
+    return cond(params);
+}
+
+bool shouldAttackKill(const RE::Actor* attacker, const RE::Actor* victim)
+{
+    static RE::TESConditionItem cond;
+    static std::once_flag       flag;
+    std::call_once(flag, [&]() {
+        cond.data.functionData.function = RE::FUNCTION_DATA::FunctionID::kShouldAttackKill;
+        cond.data.flags.opCode          = RE::CONDITION_ITEM_DATA::OpCode::kEqualTo;
+        cond.data.comparisonValue.f     = 1.0f;
+    });
+
+    ConditionParam cond_param;
+    cond_param.form                  = const_cast<RE::TESObjectREFR*>(victim->As<RE::TESObjectREFR>());
+    cond.data.functionData.params[0] = std::bit_cast<void*>(cond_param);
+
+    RE::ConditionCheckParams params(const_cast<RE::TESObjectREFR*>(attacker->As<RE::TESObjectREFR>()),
+                                    const_cast<RE::TESObjectREFR*>(victim->As<RE::TESObjectREFR>()));
     return cond(params);
 }
 
@@ -131,7 +169,10 @@ bool isLastHostileInRange(const RE::Actor* attacker, const RE::Actor* victim, fl
 
         float dist = actor->GetPosition().GetDistance(attacker->GetPosition());
         if ((dist < range) && actor->IsHostileToActor(const_cast<RE::Actor*>(attacker)))
+        {
+            logger::debug("{} in range!", actor->GetName());
             return false;
+        }
     }
     // EXTRA: CHECK PLAYER
     if (!attacker->IsPlayerRef() && !victim->IsPlayerRef())
@@ -260,80 +301,6 @@ std::string getSkeletonRace(const RE::Actor* actor)
     if (!stricmp(skel.c_str(), "Actors\\DLC02\\HMDaedra\\Character Assets\\Skeleton.nif")) return "seeker";
     if (!stricmp(skel.c_str(), "Actors\\DLC02\\Netch\\CharacterAssets\\skeleton.nif")) return "netch";
     return {};
-}
-
-std::string getEquippedTag(const RE::Actor* actor, bool is_left)
-{
-    auto lr_suffix = is_left ? "_l" : "_r";
-
-    if (auto item = actor->GetEquippedObject(is_left); item)
-    {
-        if (item->IsWeapon()) // weapons
-        {
-            switch (item->As<RE::TESObjectWEAP>()->GetWeaponType())
-            {
-                case RE::WEAPON_TYPE::kOneHandDagger:
-                    return "dagger"s + lr_suffix;
-                case RE::WEAPON_TYPE::kOneHandSword:
-                    return "sword"s + lr_suffix;
-                case RE::WEAPON_TYPE::kOneHandAxe:
-                    return "axe"s + lr_suffix;
-                case RE::WEAPON_TYPE::kOneHandMace:
-                    return "mace"s + lr_suffix;
-                case RE::WEAPON_TYPE::kStaff:
-                    return "staff"s + lr_suffix;
-                case RE::WEAPON_TYPE::kBow:
-                    return "bow";
-                case RE::WEAPON_TYPE::kCrossbow:
-                    return "crossbow";
-                case RE::WEAPON_TYPE::kTwoHandSword:
-                    return "sword2h";
-                default:
-                    break;
-            }
-            // greataxe or warhammer
-            auto keyword_form = item->As<RE::BGSKeywordForm>();
-            if (keyword_form->HasKeywordString("WeapTypeBattleaxe"))
-                return "axe2h";
-            if (keyword_form->HasKeywordString("WeapTypeWarhammer"))
-                return "mace2h";
-        }
-        else if (item->GetFormType() == RE::FormType::Light) // torch
-            return "torch";
-        else if (item->GetFormType() == RE::FormType::Spell) // spell
-            return "spell"s + lr_suffix;
-    }
-    // shield
-    if (is_left && (_getEquippedShield(const_cast<RE::Actor*>(actor)) != nullptr))
-        return "shield";
-    return "fist"s + lr_suffix;
-}
-
-bool canDecap(const RE::Actor* actor)
-{
-    static const auto decap_1h_perk = RE::TESForm::LookupByID<RE::BGSPerk>(0x3af81); // Savage Strike
-    static const auto decap_2h_perk = RE::TESForm::LookupByID<RE::BGSPerk>(0x52d52); // Devastating Blow
-
-    auto item = actor->GetEquippedObject(true);
-    if (!item)
-        item = actor->GetEquippedObject(false);
-    if (!item)
-        return false;
-    if (!item->IsWeapon())
-        return false;
-    switch (item->As<RE::TESObjectWEAP>()->GetWeaponType())
-    {
-        case RE::WEAPON_TYPE::kOneHandDagger:
-        case RE::WEAPON_TYPE::kOneHandSword:
-        case RE::WEAPON_TYPE::kOneHandAxe:
-        case RE::WEAPON_TYPE::kOneHandMace:
-            return actor->HasPerk(decap_1h_perk);
-        case RE::WEAPON_TYPE::kTwoHandSword:
-        case RE::WEAPON_TYPE::kTwoHandAxe:
-            return actor->HasPerk(decap_2h_perk);
-        default:
-            return false;
-    }
 }
 
 } // namespace kaputt

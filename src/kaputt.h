@@ -51,7 +51,7 @@ struct TaggingRefs // todo TESGlobalParams
 struct TaggingParams
 {
     StrSet required_tags           = {};
-    StrSet banned_tags             = {};
+    StrSet banned_tags             = {"adv"};
     bool   decap_requires_perk     = true;
     bool   decap_bleed_ignore_perk = true;
     bool   decap_use_chance        = false;

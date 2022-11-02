@@ -14,6 +14,15 @@ struct ProcessHitHook
     static constexpr auto offset = REL::VariantOffset(0x3c0, 0x4a8, 0x0); // VR Unknown
 };
 
+struct AttackActionHook
+{
+    static bool                                    thunk(RE::TESActionData* a_actionData);
+    static inline REL::Relocation<decltype(thunk)> func;
+
+    static constexpr auto id     = RELOCATION_ID(48139, 49170);
+    static constexpr auto offset = REL::VariantOffset(0x4d7, 0x435, 0x0); // VR Unknown
+};
+
 /* ---------------- EVENT ---------------- */
 
 class InputEventSink : public RE::BSTEventSink<RE::InputEvent*>
@@ -24,6 +33,17 @@ public:
     {
         static InputEventSink _sink;
         RE::BSInputDeviceManager::GetSingleton()->AddEventSink(&_sink);
+    }
+};
+
+class PlayerAnimGraphEventSink : public RE::BSTEventSink<RE::BSAnimationGraphEvent>
+{
+public:
+    virtual EventResult ProcessEvent(const RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
+    static void         RegisterSink()
+    {
+        static PlayerAnimGraphEventSink _sink;
+        RE::PlayerCharacter::GetSingleton()->AddAnimationGraphEventSink(&_sink);
     }
 };
 
@@ -47,6 +67,7 @@ inline RE::TESObjectREFR* _getEquippedShield(RE::Actor* a_actor)
 bool isInPairedAnimation(const RE::Actor* actor);
 bool getDetected(const RE::Actor* attacker, const RE::Actor* victim);
 bool isFurnitureAnimType(const RE::Actor* actor, RE::BSFurnitureMarker::AnimationType type);
+bool shouldAttackKill(const RE::Actor* attacker, const RE::Actor* victim);
 
 /* ------------- CUSTOM FUNC ------------- */
 
@@ -74,7 +95,5 @@ inline float getDamageMult(bool is_victim_player)
 }
 
 std::string getSkeletonRace(const RE::Actor* actor);
-std::string getEquippedTag(const RE::Actor* actor, bool is_left);
 
-bool canDecap(const RE::Actor* actor);
 } // namespace kaputt

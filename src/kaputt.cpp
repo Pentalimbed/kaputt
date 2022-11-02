@@ -2,6 +2,7 @@
 
 #include "re.h"
 #include "utils.h"
+#include "trigger.h"
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -182,6 +183,9 @@ bool Kaputt::loadConfig(std::string_view dir)
         try
         {
             from_json(j, *this);
+            // triggers
+            from_json(j["triggers"]["post_hit"], *PostHitTrigger::getSingleton());
+            from_json(j["triggers"]["sneak"], *SneakTrigger::getSingleton());
         }
         catch (json::exception e)
         {
@@ -218,6 +222,9 @@ bool Kaputt::saveConfig(std::string_view dir)
         }
 
         json j = *this;
+        j.emplace("triggers", json{});
+        j["triggers"].emplace("post_hit", *PostHitTrigger::getSingleton());
+        j["triggers"].emplace("sneak", *SneakTrigger::getSingleton());
         ostream << j.dump(4);
     }
     else
@@ -292,9 +299,9 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
 
     // manual req and ban
     std::erase_if(anims, [&](auto& edid) {
-        return std::ranges::any_of(tagging_params.required_tags, [&](auto& tag) { return !exp_tags_map.find(edid)->second.contains(tag); }) &&
-            std::ranges::any_of(submit_info.required_tags, [&](auto& tag) { return !exp_tags_map.find(edid)->second.contains(tag); }) &&
-            std::ranges::any_of(tagging_params.banned_tags, [&](auto& tag) { return exp_tags_map.find(edid)->second.contains(tag); }) &&
+        return std::ranges::any_of(tagging_params.required_tags, [&](auto& tag) { return !exp_tags_map.find(edid)->second.contains(tag); }) ||
+            std::ranges::any_of(submit_info.required_tags, [&](auto& tag) { return !exp_tags_map.find(edid)->second.contains(tag); }) ||
+            std::ranges::any_of(tagging_params.banned_tags, [&](auto& tag) { return exp_tags_map.find(edid)->second.contains(tag); }) ||
             std::ranges::any_of(submit_info.banned_tags, [&](auto& tag) { return exp_tags_map.find(edid)->second.contains(tag); });
     });
 
@@ -307,10 +314,10 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
     });
 
     // IdleTaggerLOL
-    StrMap<bool>             item_results = {};
-    RE::ConditionCheckParams params(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
     if (tagging_refs.idle_kaputt_root->childIdles)
     {
+        StrMap<bool>             item_results = {};
+        RE::ConditionCheckParams params(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
         for (auto form : *tagging_refs.idle_kaputt_root->childIdles)
         {
             if (anims.empty())
@@ -358,7 +365,7 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
             else
                 result = idle_form->conditions(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
 
-            // logger::debug("Tagger item {}, result {}", idle_edid, result);
+            logger::debug("Tagger item {}, result {}", idle_edid, result);
 
             if (auto tag_idx = idle_edid.find_first_of('_'); tag_idx != std::string::npos) // Has tag
             {
@@ -370,6 +377,11 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
                 {
                     if (flags.all(RE::IDLE_DATA::Flag::kBlocking))
                         std::swap(req_tag, ban_tag);
+
+                    if ((req_tag == "decap") &&
+                        std::ranges::none_of(anims, [&](auto edid) { return exp_tags_map.find(edid)->second.contains("decap"); })) // special treatment for decap
+                        continue;
+
                     std::erase_if(anims, [&](auto edid) {
                         return (!req_tag.empty() && !exp_tags_map.find(edid)->second.contains(req_tag)) ||
                             (!ban_tag.empty() && exp_tags_map.find(edid)->second.contains(ban_tag));
@@ -399,7 +411,7 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
             (victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kQueued))
             victim->NotifyAnimationGraph("GetUpEnd");
 
-        playPairedIdle(idle, attacker, victim); // TODO: clear
+        playPairedIdle(idle, attacker, victim);
         return true;
     }
     else

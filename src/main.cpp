@@ -57,14 +57,20 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
         case SKSE::MessagingInterface::kDataLoaded:
             logger::info("Game: data loaded");
 
-            logger::info("Installing hook");
-            stl::write_thunk_call<ProcessHitHook>();
-
             if (!Kaputt::getSingleton()->init())
                 setStatusMessage("Something wrong while initializing kaputt. Please check the log.");
 
             if (Kaputt::getSingleton()->isReady())
+            {
                 integrateCatHub(); // Cathub
+
+                logger::info("Installing hook...");
+                stl::write_thunk_call<ProcessHitHook>();
+
+                logger::info("Registering event sinks...");
+                InputEventSink::RegisterSink();
+            }
+
             break;
         case SKSE::MessagingInterface::kPostLoadGame:
             logger::debug("Game: save loaded");

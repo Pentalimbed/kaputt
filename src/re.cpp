@@ -1,5 +1,6 @@
 #include "re.h"
 
+#include "utils.h"
 #include "menu.h"
 #include "trigger.h"
 
@@ -17,6 +18,42 @@ void ProcessHitHook::thunk(RE::Actor* a_victim, RE::HitData& a_hitData)
 {
     if (PostHitTrigger::getSingleton()->process(a_victim, a_hitData))
         return func(a_victim, a_hitData);
+}
+
+EventResult InputEventSink::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>* a_eventSource)
+{
+    if (isGamePaused())
+        return RE::BSEventNotifyControl::kContinue;
+
+    if (!a_event || !a_eventSource)
+        return RE::BSEventNotifyControl::kContinue;
+
+    for (auto event = *a_event; event; event = event->next)
+        if (event->eventType == RE::INPUT_EVENT_TYPE::kButton)
+        {
+            const auto button = static_cast<RE::ButtonEvent*>(event);
+            if (!button || !button->IsDown())
+                continue;
+
+            auto key = button->GetIDCode();
+            switch (button->device.get())
+            {
+                case RE::INPUT_DEVICE::kMouse:
+                    key += kMouseOffset;
+                    break;
+                case RE::INPUT_DEVICE::kKeyboard:
+                    key += kKeyboardOffset;
+                    break;
+                case RE::INPUT_DEVICE::kGamepad:
+                    key += kGamepadOffset;
+                    break;
+                default:
+                    continue;
+            }
+
+            SneakTrigger::getSingleton()->process(key);
+        }
+    return RE::BSEventNotifyControl::kContinue;
 }
 
 bool isInPairedAnimation(const RE::Actor* actor)

@@ -211,8 +211,6 @@ void drawSettingMenu()
 
 void drawTriggerMenu()
 {
-    auto post_trigger = PostHitTrigger::getSingleton();
-
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Vanilla"))
     {
@@ -221,16 +219,35 @@ void drawTriggerMenu()
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Post-Hit"))
     {
+        ImGui::Indent();
+        ImGui::PushID("posthit");
+
+        auto post_trigger = PostHitTrigger::getSingleton();
+
         ImGui::Checkbox("Enabled", &post_trigger->enabled);
+        ImGui::SameLine();
+        if (ImGui::BeginTable("desc", 1, ImGuiTableFlags_Borders))
+        {
+            ImGui::TableNextColumn();
+            ImGui::Text("Triggers after a lethal hit landed.");
+            ImGui::EndTable();
+        }
 
-        if (!post_trigger->enabled)
-            ImGui::BeginDisabled();
+        if (ImGui::BeginTable("exec", 2))
+        {
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Bleedout Execution", &post_trigger->enable_bleedout_execution);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("One-hit killmove triggering on a bleeding out actor, even when the damage is not enough to kill.\n");
 
-        ImGui::Separator();
-        ImGui::Spacing();
-        ImGui::Checkbox("Bleedout Execution", &post_trigger->enable_bleedout_execution);
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("One-hit killmove triggering on a bleeding out actor, even when the damage is not enough to kill.\n");
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Get Up Execution", &post_trigger->enable_getup_execution);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("One-hit killmove triggering on a actor recovering from ragdoll, even when the damage is not enough to kill.\n"
+                                  "Ragdoll executions are disabled due to them being too buggy to handle.");
+
+            ImGui::EndTable();
+        }
 
         if (ImGui::BeginTable("chances", 4))
         {
@@ -247,7 +264,7 @@ void drawTriggerMenu()
             {
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-FLT_MIN);
-                ImGui::SliderFloat(fmt::format("##km{}", i).c_str(), &post_trigger->prob_km[i], 0.f, 1.f, "%.2f / 1.00");
+                ImGui::SliderFloat(fmt::format("##km{}", i).c_str(), &post_trigger->prob_km[i], 0.f, 100.f, "%.0f %%");
             }
 
             ImGui::TableNextColumn();
@@ -257,14 +274,47 @@ void drawTriggerMenu()
             {
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-FLT_MIN);
-                ImGui::SliderFloat(fmt::format("##exec{}", i).c_str(), &post_trigger->prob_exec[i], 0.f, 1.f, "%.2f / 1.00");
+                ImGui::SliderFloat(fmt::format("##exec{}", i).c_str(), &post_trigger->prob_exec[i], 0.f, 100.f, "%.0f %%");
             }
 
             ImGui::EndTable();
         }
 
-        if (!post_trigger->enabled)
-            ImGui::EndDisabled();
+        ImGui::Unindent();
+        ImGui::PopID();
+    }
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("Sneak Key"))
+    {
+        ImGui::PushID("sneak");
+        ImGui::Indent();
+
+        auto sneak_trigger = SneakTrigger::getSingleton();
+
+        ImGui::Checkbox("Enabled", &sneak_trigger->enabled);
+        ImGui::SameLine();
+        if (ImGui::BeginTable("desc", 1, ImGuiTableFlags_Borders))
+        {
+            ImGui::TableNextColumn();
+            ImGui::Text("Trigger sneak killmove on the crosshair target with a key press.");
+            ImGui::EndTable();
+        }
+
+        ImGui::InputScalar("Key (Scancode)", ImGuiDataType_U32, &sneak_trigger->key_scancode);
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text(scanCode2String(sneak_trigger->key_scancode).c_str());
+
+        ImGui::Checkbox("Need Crouching", &sneak_trigger->need_crouch);
+        ImGui::SameLine();
+        ImGui::TextDisabled("[?]");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("If disabled, you can trigger this while standing as long as you are not detected.\n"
+                              "The animation will be different though.");
+
+        ImGui::PopID();
+        ImGui::Unindent();
     }
 }
 

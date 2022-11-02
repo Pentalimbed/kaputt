@@ -35,4 +35,13 @@ inline bool isBetweenAngle(float a, float lb, float ub)
     return a <= ub;
 }
 
+enum : uint32_t
+{
+    kInvalid        = static_cast<uint32_t>(-1),
+    kKeyboardOffset = 0,
+    kMouseOffset    = 256,
+    kGamepadOffset  = 266
+};
+std::string scanCode2String(uint32_t scancode);
+
 } // namespace kaputt

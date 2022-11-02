@@ -14,6 +14,19 @@ struct ProcessHitHook
     static constexpr auto offset = REL::VariantOffset(0x3c0, 0x4a8, 0x0); // VR Unknown
 };
 
+/* ---------------- EVENT ---------------- */
+
+class InputEventSink : public RE::BSTEventSink<RE::InputEvent*>
+{
+public:
+    virtual EventResult ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>* a_eventSource);
+    static void         RegisterSink()
+    {
+        static InputEventSink _sink;
+        RE::BSInputDeviceManager::GetSingleton()->AddEventSink(&_sink);
+    }
+};
+
 /* ------------- ENGINE FUNC ------------- */
 
 inline bool _playPairedIdle(RE::AIProcess* proc, RE::Actor* attacker, RE::DEFAULT_OBJECT smth, RE::TESIdleForm* idle, bool a5, bool a6, RE::TESObjectREFR* target)
@@ -36,6 +49,12 @@ bool getDetected(const RE::Actor* attacker, const RE::Actor* victim);
 bool isFurnitureAnimType(const RE::Actor* actor, RE::BSFurnitureMarker::AnimationType type);
 
 /* ------------- CUSTOM FUNC ------------- */
+
+inline bool isGamePaused()
+{
+    auto UI = RE::UI::GetSingleton();
+    return !UI || UI->GameIsPaused();
+}
 
 inline bool animPlayable(const RE::Actor* actor) { return actor->Is3DLoaded() && !actor->IsDead() && !isInPairedAnimation(actor) && !actor->IsOnMount() && !actor->IsInRagdollState(); }
 

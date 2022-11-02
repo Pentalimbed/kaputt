@@ -164,15 +164,12 @@ bool isLastHostileInRange(const RE::Actor* attacker, const RE::Actor* victim, fl
 
         auto actor = actor_handle.get().get();
 
-        if ((actor == attacker) || (actor == victim) || (actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) <= 0))
+        if ((actor == attacker) || (actor == victim) || actor->IsDead())
             continue;
 
         float dist = actor->GetPosition().GetDistance(attacker->GetPosition());
         if ((dist < range) && actor->IsHostileToActor(const_cast<RE::Actor*>(attacker)))
-        {
-            logger::debug("{} in range!", actor->GetName());
             return false;
-        }
     }
     // EXTRA: CHECK PLAYER
     if (!attacker->IsPlayerRef() && !victim->IsPlayerRef())

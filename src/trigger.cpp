@@ -111,12 +111,8 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
     if (!do_trigger)
         return true;
 
-    logger::debug("posthit triggering!");
-
     if (!kap->precondition(attacker, victim))
         return true;
-
-    logger::debug("precond pass!");
 
     if (!lottery(attacker, victim, do_trigger == 1))
         return true;

@@ -11,6 +11,7 @@ struct MiscParams
 {
     bool disable_vanilla = true;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MiscParams, disable_vanilla)
 
 struct PreconditionParams
 {
@@ -46,6 +47,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
 
 struct RequiredRefs
 {
+    RE::TESGlobal*   vanilla_killmove        = nullptr;
     RE::TESIdleForm* idle_kaputt_root        = nullptr;
     RE::TESGlobal*   decap_requires_perk     = nullptr;
     RE::TESGlobal*   decap_bleed_ignore_perk = nullptr;
@@ -73,6 +75,8 @@ class Kaputt : public KaputtAPI
 private:
     std::atomic_bool ready;
 
+    MiscParams misc_params = {};
+
     /** Tags
      *  
      *  Delimited by SPACE
@@ -92,7 +96,7 @@ private:
      *  boar riekling scrib lurker ballista vamplord werewolf
      * 
      *  -- Positioning --
-     *  front back left right : relative to victim's orientation
+     *  front back: relative to victim's orientation
      * 
      *  -- Misc --
      *  decap: decapitation
@@ -110,7 +114,7 @@ private:
 
     RequiredRefs required_refs = {};
 
-    bool loadTaggingParams();
+    bool loadRefs();
 
 public:
     // INIT
@@ -126,7 +130,7 @@ public:
     // FILE IO
     bool loadAnims();
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Kaputt, anim_custom_tags_map, precond_params, tagging_params, tagexp_list)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Kaputt, anim_custom_tags_map, misc_params, precond_params, tagging_params, tagexp_list)
     bool loadConfig(std::string_view dir);
     bool saveConfig(std::string_view dir);
 
@@ -136,7 +140,7 @@ public:
     bool                          setTags(std::string_view edid, const StrSet& tags);
 
     //
-    void applyTaggingParams();
+    void applyRefs();
 
     // API
     virtual bool precondition(const RE::Actor* attacker, const RE::Actor* victim);

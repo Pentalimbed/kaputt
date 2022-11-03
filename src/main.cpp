@@ -79,7 +79,7 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
             PlayerAnimGraphEventSink::RegisterSink();
 
             if (Kaputt::getSingleton()->isReady())
-                Kaputt::getSingleton()->applyTaggingParams();
+                Kaputt::getSingleton()->applyRefs();
             break;
         default:
             break;

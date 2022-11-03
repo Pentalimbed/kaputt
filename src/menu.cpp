@@ -43,7 +43,33 @@ void header(const char* label, int columns = 4)
 void drawSettingMenu()
 {
     auto  kaputt         = Kaputt::getSingleton();
+    auto& required_refs  = kaputt->required_refs;
+    auto& misc_params    = kaputt->misc_params;
+    auto& tagging_params = kaputt->tagging_params;
     auto& precond_params = kaputt->precond_params;
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("Misc"))
+    {
+        if (ImGui::BeginTable("miscccc", 2))
+        {
+            ImGui::TableSetupColumn("1", 0, 1);
+            ImGui::TableSetupColumn("2", 0, 3);
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Disable Vanilla");
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("This sets the vanilla global value 'Killmove' to 0. Doesn't affect dragon bites and sneak kills.");
+            ImGui::TableNextColumn();
+            if (ImGui::Checkbox("##disablevanilla", &misc_params.disable_vanilla))
+                required_refs.vanilla_killmove->value = !misc_params.disable_vanilla;
+
+            ImGui::EndTable();
+        }
+    }
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Precondition"))
@@ -135,9 +161,6 @@ void drawSettingMenu()
             ImGui::EndTable();
         }
     }
-
-    auto& required_refs  = kaputt->required_refs;
-    auto& tagging_params = kaputt->tagging_params;
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Animation Filtering"))
@@ -240,7 +263,7 @@ void drawTriggerMenu()
         if (ImGui::BeginTable("desc", 1, ImGuiTableFlags_Borders))
         {
             ImGui::TableNextColumn();
-            ImGui::Text("Triggers killmoves when an supposedly lethal attack is initiated.");
+            ImGui::Text("Triggers when an supposedly lethal attack is initiated.");
             ImGui::EndTable();
         }
 
@@ -309,7 +332,7 @@ void drawTriggerMenu()
             ImGui::SameLine();
             ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("One-hit killmove triggering on a actor recovering from ragdoll, even when the damage is not enough to kill.\n"
+                ImGui::SetTooltip("One-hit killmove triggering on an actor recovering from ragdoll, even when the damage is not enough to kill.\n"
                                   "Ragdoll executions are disabled due to them being too buggy to handle.");
 
             ImGui::TableNextColumn();
@@ -373,7 +396,7 @@ void drawTriggerMenu()
         if (ImGui::BeginTable("desc", 1, ImGuiTableFlags_Borders))
         {
             ImGui::TableNextColumn();
-            ImGui::Text("Trigger sneak killmove on the crosshair target with a key press.");
+            ImGui::Text("Triggers sneak killmoves on the crosshair target with a key press.");
             ImGui::EndTable();
         }
 

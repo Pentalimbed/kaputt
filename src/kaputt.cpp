@@ -11,22 +11,25 @@ namespace fs = std::filesystem;
 
 namespace kaputt
 {
-bool Kaputt::loadTaggingParams()
+bool Kaputt::loadRefs()
 {
+    required_refs.vanilla_killmove        = RE::TESForm::LookupByEditorID<RE::TESGlobal>("Killmove");
     required_refs.idle_kaputt_root        = RE::TESForm::LookupByEditorID<RE::TESIdleForm>("KaputtRoot");
     required_refs.decap_requires_perk     = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapReqDecapPerk");
     required_refs.decap_bleed_ignore_perk = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapBleedIgnoreDecapPerk");
     required_refs.decap_percent           = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapPercent");
     required_refs.decap_use_chance        = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapUseChance");
-    return required_refs.idle_kaputt_root &&
+    return required_refs.vanilla_killmove &&
+        required_refs.idle_kaputt_root &&
         required_refs.decap_requires_perk &&
         required_refs.decap_bleed_ignore_perk &&
         required_refs.decap_use_chance &&
         required_refs.decap_percent;
 }
 
-void Kaputt::applyTaggingParams()
+void Kaputt::applyRefs()
 {
+    required_refs.vanilla_killmove->value        = !misc_params.disable_vanilla;
     required_refs.decap_requires_perk->value     = tagging_params.decap_requires_perk;
     required_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk;
     required_refs.decap_percent->value           = tagging_params.decap_percent;
@@ -39,7 +42,7 @@ bool Kaputt::init()
 
     bool all_ok = true;
 
-    if (!loadTaggingParams())
+    if (!loadRefs())
     {
         logger::error("Cannot find 'KaputtRoot', 'KapReqDecapPerk' or 'KapDecapPercent', mod disabled. Make sure KaputtVanillaKillmoves.esp is enabled in your load order.");
         return false;

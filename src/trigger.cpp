@@ -53,7 +53,9 @@ void VanillaTrigger::process()
 
 bool VanillaTrigger::process(RE::Actor* attacker, RE::Actor* victim)
 {
-    logger::debug("VANILLA PROCESSING {} to {}!", attacker->GetName(), victim->GetName());
+    // distance fix
+    if (attacker->GetPosition().GetDistance(victim->GetPosition()) > 128)
+        return true;
 
     // should kill cond
     if (!shouldAttackKill(attacker, victim))

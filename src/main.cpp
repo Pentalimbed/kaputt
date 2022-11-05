@@ -4,6 +4,7 @@
 #include "menu.h"
 #include "cathub.h"
 #include "re.h"
+#include "tasks.h"
 
 // #define DBGMSG
 
@@ -67,6 +68,7 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
                 logger::info("Installing hook...");
                 stl::write_thunk_call<ProcessHitHook>();
                 stl::write_thunk_call<AttackActionHook>();
+                stl::write_thunk_call<UpdateHook>();
 
                 logger::info("Registering event sinks...");
                 InputEventSink::RegisterSink();
@@ -76,10 +78,13 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
         case SKSE::MessagingInterface::kPostLoadGame:
             logger::debug("Game: save loaded");
 
-            PlayerAnimGraphEventSink::RegisterSink();
-
             if (Kaputt::getSingleton()->isReady())
+            {
+                TaskManager::getSingleton()->flush();
+                PlayerAnimGraphEventSink::RegisterSink();
                 Kaputt::getSingleton()->applyRefs();
+            }
+
             break;
         default:
             break;
@@ -98,7 +103,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
     logger::info("{} {} is loading...", plugin->GetName(), version);
 
     SKSE::Init(skse);
-    SKSE::AllocTrampoline(14 * 2);
+    SKSE::AllocTrampoline(14 * 3);
 
     auto messaging = SKSE::GetMessagingInterface();
     if (!messaging->RegisterListener("SKSE", processMessage))

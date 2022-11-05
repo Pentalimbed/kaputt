@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "menu.h"
 #include "trigger.h"
+#include "tasks.h"
 
 namespace kaputt
 {
@@ -17,12 +18,18 @@ union ConditionParam
 void ProcessHitHook::thunk(RE::Actor* a_victim, RE::HitData& a_hitData)
 {
     if (PostHitTrigger::getSingleton()->process(a_victim, a_hitData))
-        return func(a_victim, a_hitData);
+        func(a_victim, a_hitData);
 }
 
 bool AttackActionHook::thunk(RE::TESActionData* a_actionData)
 {
     return VanillaTrigger::getSingleton()->process(a_actionData) && func(a_actionData);
+}
+
+void UpdateHook::thunk(RE::Main* a_this, float a2)
+{
+    func(a_this, a2);
+    TaskManager::getSingleton()->update();
 }
 
 EventResult InputEventSink::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>* a_eventSource)

@@ -27,7 +27,8 @@ set(headers
         src/utils.h
         src/kaputtAPI.h
         src/kaputt.h
-        src/trigger.h)
+        src/trigger.h
+        src/tasks.h)
 
 set(sources
         src/re.cpp
@@ -36,6 +37,7 @@ set(sources
         src/utils.cpp
         src/kaputt.cpp
         src/trigger.cpp
+        src/tasks.cpp
 
         ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 

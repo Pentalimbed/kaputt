@@ -1,6 +1,8 @@
 #include "trigger.h"
 
 #include "re.h"
+#include "tasks.h"
+
 #include <effolkronium/random.hpp>
 
 namespace kaputt
@@ -133,7 +135,15 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
     if ((do_trigger == 1) && instakill) // instakill operation
         hit_data.totalDamage = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) / getDamageMult(victim->IsPlayerRef()) + 10;
 
-    kap->submit(attacker, victim);
+    auto health = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
+    if (kap->submit(attacker, victim))
+    {
+        TaskManager::getSingleton()->addTask(50, [=]() {
+            if (attacker && victim)
+                victim->KillImpl(attacker, health, false, false);
+        });
+        return false;
+    }
     return true;
 }
 

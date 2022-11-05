@@ -94,7 +94,7 @@ void drawSettingMenu()
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Protected Protection");
             ImGui::TableNextColumn();
-            ImGui::Checkbox(precond_params.protected_protection ? "enabled" : "disabled", &precond_params.protected_protection);
+            ImGui::Checkbox(precond_params.protected_protection ? "enabled##prot" : "disabled##prot", &precond_params.protected_protection);
             ImGui::TableNextRow();
 
             ImGui::TableNextColumn();
@@ -270,9 +270,29 @@ void drawTriggerMenu()
         if (!vanilla_trigger->enabled)
             ImGui::BeginDisabled();
 
+        if (ImGui::BeginTable("exec", 3))
+        {
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Bleedout Execution", &vanilla_trigger->enable_bleedout_execution);
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Triggering on a bleeding out actor, even when the damage is not enough to kill.\n");
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Get Up Execution", &vanilla_trigger->enable_getup_execution);
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Triggering on an actor recovering from ragdoll, even when the damage is not enough to kill.\n"
+                                  "Ragdoll executions are disabled due to them being too buggy to handle.");
+
+            ImGui::EndTable();
+        }
+
         if (ImGui::BeginTable("chances", 4))
         {
-            ImGui::TableSetupColumn("##Chances");
+            ImGui::TableSetupColumn("Chances");
             ImGui::TableSetupColumn("Player->NPC");
             ImGui::TableSetupColumn("NPC->Player");
             ImGui::TableSetupColumn("NPC->NPC");
@@ -280,12 +300,22 @@ void drawTriggerMenu()
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Chances");
+            ImGui::Text("Killmove");
             for (auto i : {0, 1, 2})
             {
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-FLT_MIN);
-                ImGui::SliderFloat(fmt::format("##km{}", i).c_str(), &vanilla_trigger->prob[i], 0.f, 100.f, "%.0f %%");
+                ImGui::SliderFloat(fmt::format("##km{}", i).c_str(), &vanilla_trigger->prob_km[i], 0.f, 100.f, "%.0f %%");
+            }
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Execution");
+            for (auto i : {0, 1, 2})
+            {
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SliderFloat(fmt::format("##exec{}", i).c_str(), &vanilla_trigger->prob_exec[i], 0.f, 100.f, "%.0f %%");
             }
 
             ImGui::EndTable();
@@ -325,14 +355,14 @@ void drawTriggerMenu()
             ImGui::SameLine();
             ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("One-hit killmove triggering on a bleeding out actor, even when the damage is not enough to kill.\n");
+                ImGui::SetTooltip("One-hit triggering on a bleeding out actor, even when the damage is not enough to kill.\n");
 
             ImGui::TableNextColumn();
             ImGui::Checkbox("Get Up Execution", &post_trigger->enable_getup_execution);
             ImGui::SameLine();
             ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("One-hit killmove triggering on an actor recovering from ragdoll, even when the damage is not enough to kill.\n"
+                ImGui::SetTooltip("One-hit triggering on an actor recovering from ragdoll, even when the damage is not enough to kill.\n"
                                   "Ragdoll executions are disabled due to them being too buggy to handle.");
 
             ImGui::TableNextColumn();

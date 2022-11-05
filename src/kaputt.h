@@ -11,7 +11,7 @@ struct MiscParams
 {
     bool disable_vanilla = true;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MiscParams, disable_vanilla)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MiscParams, disable_vanilla)
 
 struct PreconditionParams
 {
@@ -34,7 +34,7 @@ struct PreconditionParams
                                                  "DLC1LD_ForgemasterRace",
                                                  "DLC2GhostFrostGiantRace"};
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
     PreconditionParams,
     essential_protection,
     protected_protection,
@@ -64,7 +64,7 @@ struct TaggingParams
     bool   decap_use_chance        = false;
     float  decap_percent           = 30.f;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TaggingParams, required_tags, banned_tags, decap_requires_perk, decap_bleed_ignore_perk, decap_use_chance, decap_percent);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(TaggingParams, required_tags, banned_tags, decap_requires_perk, decap_bleed_ignore_perk, decap_use_chance, decap_percent);
 
 class Kaputt : public KaputtAPI
 {

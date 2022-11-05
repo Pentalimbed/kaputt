@@ -10,8 +10,7 @@ bool VanillaTrigger::process(RE::TESActionData* action_data)
     if (!enabled)
         return true;
 
-    auto kap = Kaputt::getSingleton();
-    if (!kap->isReady())
+    if (!Kaputt::getSingleton()->isReady())
         return true;
 
     if (!(action_data && action_data->source))
@@ -32,8 +31,7 @@ void VanillaTrigger::process()
     if (!enabled)
         return;
 
-    auto kap = Kaputt::getSingleton();
-    if (!kap->isReady())
+    if (!Kaputt::getSingleton()->isReady())
         return;
 
     auto player = RE::PlayerCharacter::GetSingleton();
@@ -53,30 +51,42 @@ void VanillaTrigger::process()
 
 bool VanillaTrigger::process(RE::Actor* attacker, RE::Actor* victim)
 {
+    auto kap = Kaputt::getSingleton();
+
     // distance fix
-    if (attacker->GetPosition().GetDistance(victim->GetPosition()) > 128)
+    if (attacker->GetPosition().GetDistance(victim->GetPosition()) > 192)
         return true;
 
+    // 0-no 1-exec 2-killmove
+    // bleedout check
+    uint8_t do_trigger = enable_bleedout_execution && victim->AsActorState()->IsBleedingOut();
+    // getup check
+    bool getting_up = (victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kGetUp) ||
+        (victim->AsActorState()->GetKnockState() == RE::KNOCK_STATE_ENUM::kQueued);
+    if (!do_trigger)
+        do_trigger = enable_getup_execution && getting_up;
     // should kill cond
-    if (!shouldAttackKill(attacker, victim))
+    if (!do_trigger)
+        do_trigger = shouldAttackKill(attacker, victim) * 2;
+
+    if (!do_trigger)
         return true;
 
-    logger::debug("should kill!");
-
-    if (!Kaputt::getSingleton()->precondition(attacker, victim))
+    if (!kap->precondition(attacker, victim))
         return true;
 
-    if (!lottery(attacker, victim))
+    if (!lottery(attacker, victim, do_trigger == 1))
         return true;
 
-    Kaputt::getSingleton()->submit(attacker, victim);
+    kap->submit(attacker, victim);
     return true;
 }
 
-bool VanillaTrigger::lottery(RE::Actor* attacker, RE::Actor* victim)
+bool VanillaTrigger::lottery(RE::Actor* attacker, RE::Actor* victim, bool is_exec)
 {
-    size_t idx = -1 + 2 * !attacker->IsPlayerRef() + !victim->IsPlayerRef();
-    return effolkronium::random_static::get(0.f, 100.f) < prob[idx];
+    size_t idx  = -1 + 2 * !attacker->IsPlayerRef() + !victim->IsPlayerRef();
+    float  prob = (is_exec ? prob_exec : prob_km)[idx];
+    return effolkronium::random_static::get(0.f, 100.f) < prob;
 }
 
 bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
@@ -109,6 +119,7 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
         if (victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) <= hit_data.totalDamage * dmg_mult)
             do_trigger = 2;
     }
+    logger::debug("dmgmult {}", getDamageMult(victim->IsPlayerRef()));
 
     if (!do_trigger)
         return true;

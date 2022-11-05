@@ -5,7 +5,7 @@
 #include "cathub.h"
 #include "re.h"
 
-#define DBGMSG
+// #define DBGMSG
 
 namespace kaputt
 {

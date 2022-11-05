@@ -250,6 +250,7 @@ bool Kaputt::saveConfig(std::string_view dir)
 
 bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
 {
+    logger::debug("precondition");
     // Playable check
     if (!(animPlayable(attacker) && animPlayable(victim)))
         return false;
@@ -292,6 +293,8 @@ bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
 
 bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStruct& submit_info)
 {
+    logger::debug("filtering");
+
     std::vector<std::string_view> anims        = listAnims();
     StrMap<StrSet>                exp_tags_map = {};
     for (auto& edid : anims)

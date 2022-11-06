@@ -68,7 +68,7 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
                 logger::info("Installing hook...");
                 stl::write_thunk_call<ProcessHitHook>();
                 stl::write_thunk_call<AttackActionHook>();
-                stl::write_thunk_call<UpdateHook>();
+                // stl::write_thunk_call<UpdateHook>();
 
                 logger::info("Registering event sinks...");
                 InputEventSink::RegisterSink();

@@ -322,8 +322,9 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
     auto att_race_tag = "a_" + getSkeletonRace(attacker);
     auto vic_race_tag = "v_" + getSkeletonRace(victim);
     std::erase_if(anims, [&](auto& edid) {
-        return !(exp_tags_map.find(edid)->second.contains(att_race_tag) &&
-                 exp_tags_map.find(edid)->second.contains(vic_race_tag));
+        return !(
+            (att_race_tag == "a_" || exp_tags_map.find(edid)->second.contains(att_race_tag)) &&
+            (vic_race_tag == "v_" || exp_tags_map.find(edid)->second.contains(vic_race_tag)));
     });
 
     // IdleTaggerLOL

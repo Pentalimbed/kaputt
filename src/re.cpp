@@ -260,8 +260,8 @@ void testPlayPairedIdle(RE::TESIdleForm* idle, float max_range)
 std::string getSkeletonRace(const RE::Actor* actor)
 {
     auto skel = actor->GetRace()->skeletonModels[actor->GetActorBase()->IsFemale()].model;
-    if (!stricmp(skel.c_str(), "Actors\\Character\\Character Assets\\skeleton.nif")) return "human";
-    if (!stricmp(skel.c_str(), "actors\\Character\\Character Assets Female\\skeleton_female.nif")) return "human";
+    // if (!stricmp(skel.c_str(), "Actors\\Character\\Character Assets\\skeleton.nif")) return "human";
+    // if (!stricmp(skel.c_str(), "actors\\Character\\Character Assets Female\\skeleton_female.nif")) return "human";
     if (!stricmp(skel.c_str(), "Actors\\DLC02\\DwarvenBallistaCenturion\\Character Assets\\skeleton.nif")) return "ballista";
     if (!stricmp(skel.c_str(), "Actors\\Bear\\Character Assets\\skeleton.nif")) return "bear";
     if (!stricmp(skel.c_str(), "Actors\\DLC02\\BoarRiekling\\Character Assets\\SkeletonBoar.nif")) return "boar";

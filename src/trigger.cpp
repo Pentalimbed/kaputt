@@ -136,14 +136,8 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
         hit_data.totalDamage = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) / getDamageMult(victim->IsPlayerRef()) + 10;
 
     auto health = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
-    if (kap->submit(attacker, victim))
-    {
-        TaskManager::getSingleton()->addTask(50, [=]() {
-            if (attacker && victim)
-                victim->KillImpl(attacker, health, false, false);
-        });
-        return false;
-    }
+
+    kap->submit(attacker, victim);
     return true;
 }
 

@@ -15,12 +15,14 @@ bool Kaputt::loadRefs()
 {
     required_refs.vanilla_killmove        = RE::TESForm::LookupByEditorID<RE::TESGlobal>("Killmove");
     required_refs.idle_kaputt_root        = RE::TESForm::LookupByEditorID<RE::TESIdleForm>("KaputtRoot");
+    required_refs.decap_disable_player    = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDisablePlayerDecap");
     required_refs.decap_requires_perk     = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapReqDecapPerk");
     required_refs.decap_bleed_ignore_perk = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapBleedIgnoreDecapPerk");
     required_refs.decap_percent           = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapPercent");
     required_refs.decap_use_chance        = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDecapUseChance");
     return required_refs.vanilla_killmove &&
         required_refs.idle_kaputt_root &&
+        required_refs.decap_disable_player &&
         required_refs.decap_requires_perk &&
         required_refs.decap_bleed_ignore_perk &&
         required_refs.decap_use_chance &&
@@ -30,6 +32,7 @@ bool Kaputt::loadRefs()
 void Kaputt::applyRefs()
 {
     required_refs.vanilla_killmove->value        = !misc_params.disable_vanilla;
+    required_refs.decap_disable_player->value    = tagging_params.decap_disable_player;
     required_refs.decap_requires_perk->value     = tagging_params.decap_requires_perk;
     required_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk;
     required_refs.decap_percent->value           = tagging_params.decap_percent;
@@ -44,7 +47,7 @@ bool Kaputt::init()
 
     if (!loadRefs())
     {
-        logger::error("Cannot find 'KaputtRoot', 'KapReqDecapPerk' or 'KapDecapPercent', mod disabled. Make sure KaputtVanillaKillmoves.esp is enabled in your load order.");
+        logger::error("Cannot find certain forms, mod disabled. Make sure KaputtVanillaKillmoves.esp is enabled in your load order.");
         return false;
     }
 
@@ -162,6 +165,8 @@ bool Kaputt::loadAnims()
 
 bool Kaputt::loadConfig(std::string_view dir)
 {
+    clear();
+
     logger::info("Loading kaputt config {} ...", dir);
 
     bool all_ok = true;
@@ -201,6 +206,12 @@ bool Kaputt::loadConfig(std::string_view dir)
             logJsonException("Kaputt", e);
             logger::warn("Kaputt config not fully loaded!");
             return false;
+        }
+
+        if (misc_params.enable_debug_log)
+        {
+            spdlog::set_level(spdlog::level::trace);
+            spdlog::flush_on(spdlog::level::trace);
         }
     }
     else
@@ -367,6 +378,7 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
                     }
                     else
                         single_result = cond_item->IsTrue(params);
+
 
                     or_cache |= single_result;
                     if (!cond_item->next || !cond_data.flags.isOR)

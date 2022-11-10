@@ -5,8 +5,10 @@
 #include "cathub.h"
 #include "re.h"
 #include "tasks.h"
+#include "PrecisionAPI.h"
+#include "trigger.h"
 
-// #define DBGMSG
+#define DBGMSG
 
 namespace kaputt
 {
@@ -33,6 +35,43 @@ bool installLog()
     spdlog::set_pattern("[%H:%M:%S:%e][%5l] %v"s);
 
     return true;
+}
+
+void initPrecisionAPI()
+{
+    auto result = reinterpret_cast<PRECISION_API::IVPrecision1*>(PRECISION_API::RequestPluginAPI(PRECISION_API::InterfaceVersion::V1));
+    if (result)
+    {
+        logger::info("Obtained PrecisionAPI");
+        auto res = result->AddPreHitCallback(
+            SKSE::GetPluginHandle(),
+            [](const PRECISION_API::PrecisionHitData& precision_hitdata) -> PRECISION_API::PreHitCallbackReturn {
+                auto attacker = precision_hitdata.attacker;
+                if (!attacker)
+                    return {};
+                auto target = precision_hitdata.target ? precision_hitdata.target->As<RE::Actor>() : nullptr;
+                if (!target)
+                    return {};
+                auto attack_weap = attacker->GetAttackingWeapon();
+                if (!attack_weap)
+                    return {};
+                RE::HitData hitdata;
+                _hitdataCtor(&hitdata);
+                hitdata.Populate(attacker, target, attack_weap);
+
+                // if (PostHitTrigger::getSingleton()->process(target, hitdata))
+                // {
+                //     logger::debug("Sent!");
+                //     return {.bIgnoreHit = true};
+                // }
+                // return {};
+                return {.bIgnoreHit = true};
+            });
+        if (res == PRECISION_API::APIResult::OK || res == PRECISION_API::APIResult::AlreadyRegistered)
+            logger::info("Collision prehit callback successfully registered.");
+    }
+    else
+        logger::info("Precision API not found.");
 }
 
 void integrateCatHub()
@@ -64,6 +103,7 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
             if (Kaputt::getSingleton()->isReady())
             {
                 integrateCatHub(); // Cathub
+                // initPrecisionAPI();
 
                 logger::info("Installing hook...");
                 stl::write_thunk_call<ProcessHitHook>();

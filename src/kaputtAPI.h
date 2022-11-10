@@ -7,7 +7,7 @@
 
 namespace kaputt
 {
-constexpr REL::Version API_VER = {1, 0, 5, 0};
+constexpr REL::Version API_VER = {1, 0, 0, 0};
 
 struct SubmitInfoStruct
 {

@@ -17,8 +17,8 @@ union ConditionParam
 
 void ProcessHitHook::thunk(RE::Actor* a_victim, RE::HitData& a_hitData)
 {
-    if (PostHitTrigger::getSingleton()->process(a_victim, a_hitData))
-        func(a_victim, a_hitData);
+    PostHitTrigger::getSingleton()->process(a_victim, a_hitData);
+    func(a_victim, a_hitData);
 }
 
 bool AttackActionHook::thunk(RE::TESActionData* a_actionData)
@@ -270,6 +270,7 @@ std::string getSkeletonRace(const RE::Actor* actor)
     if (!stricmp(skel.c_str(), "Actors\\Dragon\\Character Assets\\Skeleton.nif")) return "dragon";
     if (!stricmp(skel.c_str(), "Actors\\Draugr\\Character Assets\\Skeleton.nif")) return "draugr";
     if (!stricmp(skel.c_str(), "Actors\\Draugr\\Character Assets\\SkeletonF.nif")) return "draugr";
+    if (!stricmp(skel.c_str(), "Actors\\Draugr\\Character Assets\\SkeletonS.nif")) return "skeleton";
     if (!stricmp(skel.c_str(), "Actors\\Falmer\\Character Assets\\Skeleton.nif")) return "falmer";
     if (!stricmp(skel.c_str(), "Actors\\DLC01\\VampireBrute\\Character Assets\\skeleton.nif")) return "gargoyle";
     if (!stricmp(skel.c_str(), "Actors\\Giant\\Character Assets\\skeleton.nif")) return "giant";

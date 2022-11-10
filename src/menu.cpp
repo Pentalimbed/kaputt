@@ -67,6 +67,17 @@ void drawSettingMenu()
             if (ImGui::Checkbox("##disablevanilla", &misc_params.disable_vanilla))
                 required_refs.vanilla_killmove->value = !misc_params.disable_vanilla;
 
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Debug Log");
+            ImGui::TableNextColumn();
+            if (ImGui::Checkbox(misc_params.enable_debug_log ? "enabled##debug" : "disabled##debug", &misc_params.enable_debug_log))
+            {
+                auto level = misc_params.enable_debug_log ? spdlog::level::trace : spdlog::level::info;
+                spdlog::set_level(level);
+                spdlog::flush_on(level);
+            }
+
             ImGui::EndTable();
         }
     }
@@ -183,6 +194,18 @@ void drawSettingMenu()
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             drawTagsInputText("##bantag", tagging_params.banned_tags);
+
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Player Decap");
+            ImGui::TableNextColumn();
+            if (ImGui::Checkbox("disabled##playerdecap", &tagging_params.decap_disable_player))
+                required_refs.decap_disable_player->value = tagging_params.decap_disable_player;
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("A RaceMenu bug crashes the game when beheading a character with face overlays.\n"
+                                  "This bug mostly happens on players, hence this option if you still want to chop some other heads off.");
 
             ImGui::EndTable();
         }

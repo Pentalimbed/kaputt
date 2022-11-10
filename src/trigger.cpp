@@ -94,15 +94,15 @@ bool VanillaTrigger::lottery(RE::Actor* attacker, RE::Actor* victim, bool is_exe
 bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
 {
     if (!enabled)
-        return true;
+        return false;
 
     auto kap = Kaputt::getSingleton();
     if (!kap->isReady())
-        return true;
+        return false;
 
     auto attacker = hit_data.aggressor.get().get();
     if (!attacker || !victim)
-        return true;
+        return false;
 
     logger::debug("{} hitting {}", attacker->GetName(), victim->GetName());
 
@@ -124,21 +124,20 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
     logger::debug("dmgmult {}", getDamageMult(victim->IsPlayerRef()));
 
     if (!do_trigger)
-        return true;
+        return false;
 
     if (!kap->precondition(attacker, victim))
-        return true;
+        return false;
 
     if (!lottery(attacker, victim, do_trigger == 1))
-        return true;
+        return false;
 
     if ((do_trigger == 1) && instakill) // instakill operation
         hit_data.totalDamage = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) / getDamageMult(victim->IsPlayerRef()) + 10;
 
     auto health = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
 
-    kap->submit(attacker, victim);
-    return true;
+    return kap->submit(attacker, victim);
 }
 
 bool PostHitTrigger::lottery(RE::Actor* attacker, RE::Actor* victim, bool is_exec)

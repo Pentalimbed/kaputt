@@ -6,7 +6,7 @@ message("Using toolchain file ${CMAKE_TOOLCHAIN_FILE}.")
 ########################################################################################################################
 project(
         Kaputt
-        VERSION 1.0.5
+        VERSION 1.0.10
         DESCRIPTION ""
         LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
@@ -28,7 +28,9 @@ set(headers
         src/kaputtAPI.h
         src/kaputt.h
         src/trigger.h
-        src/tasks.h)
+        src/tasks.h
+        
+        src/PrecisionAPI.h)
 
 set(sources
         src/re.cpp

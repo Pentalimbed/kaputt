@@ -14,7 +14,7 @@ public:
     bool                 enable_bleedout_execution = false;
     bool                 enable_getup_execution    = false;
     std::array<float, 3> prob_km                   = {50.f, 50.f, 50.f}; // p2n, n2p, n2n
-    std::array<float, 3> prob_exec                 = {50.f, 50.f, 50.f};
+    std::array<float, 3> prob_exec                 = {100.f, 100.f, 100.f};
 
     // FUNC
     static VanillaTrigger* getSingleton()
@@ -40,7 +40,7 @@ public:
     bool                 enable_bleedout_execution = false;
     bool                 enable_getup_execution    = false;
     bool                 instakill                 = false;
-    std::array<float, 3> prob_km                   = {100.f, 100.f, 100.f}; // p2n, n2p, n2n
+    std::array<float, 3> prob_km                   = {50.f, 50.f, 50.f}; // p2n, n2p, n2n
     std::array<float, 3> prob_exec                 = {100.f, 100.f, 100.f};
 
     // FUNC

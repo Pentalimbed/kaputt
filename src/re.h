@@ -64,11 +64,12 @@ inline bool _playPairedIdle(RE::AIProcess* proc, RE::Actor* attacker, RE::DEFAUL
     REL::Relocation<func_t> func{RELOCATION_ID(38290, 39256)};
     return func(proc, attacker, smth, idle, a5, a6, target);
 }
-inline RE::TESObjectREFR* _getEquippedShield(RE::Actor* a_actor)
+
+inline void _hitdataCtor(RE::HitData* a_this)
 {
-    using func_t = decltype(&_getEquippedShield);
-    REL::Relocation<func_t> func{RELOCATION_ID(37624, 38577)};
-    return func(a_actor);
+    using func_t = decltype(&_hitdataCtor);
+    REL::Relocation<func_t> func{RELOCATION_ID(42826, 43995)};
+    return func(a_this);
 }
 
 /* ------------- TESCOND WRAPPER ------------- */

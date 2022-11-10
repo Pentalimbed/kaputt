@@ -9,9 +9,10 @@ namespace kaputt
 
 struct MiscParams
 {
-    bool disable_vanilla = true;
+    bool disable_vanilla  = true;
+    bool enable_debug_log = false;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MiscParams, disable_vanilla)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MiscParams, disable_vanilla, enable_debug_log)
 
 struct PreconditionParams
 {
@@ -49,6 +50,7 @@ struct RequiredRefs
 {
     RE::TESGlobal*   vanilla_killmove        = nullptr;
     RE::TESIdleForm* idle_kaputt_root        = nullptr;
+    RE::TESGlobal*   decap_disable_player    = nullptr;
     RE::TESGlobal*   decap_requires_perk     = nullptr;
     RE::TESGlobal*   decap_bleed_ignore_perk = nullptr;
     RE::TESGlobal*   decap_percent           = nullptr;
@@ -59,12 +61,13 @@ struct TaggingParams
 {
     StrSet required_tags           = {};
     StrSet banned_tags             = {"adv"};
+    bool   decap_disable_player    = false;
     bool   decap_requires_perk     = true;
     bool   decap_bleed_ignore_perk = true;
     bool   decap_use_chance        = false;
     float  decap_percent           = 30.f;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(TaggingParams, required_tags, banned_tags, decap_requires_perk, decap_bleed_ignore_perk, decap_use_chance, decap_percent);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(TaggingParams, required_tags, banned_tags, decap_disable_player, decap_requires_perk, decap_bleed_ignore_perk, decap_use_chance, decap_percent);
 
 class Kaputt : public KaputtAPI
 {
@@ -114,7 +117,15 @@ private:
 
     RequiredRefs required_refs = {};
 
-    bool loadRefs();
+    bool        loadRefs();
+    inline void clear()
+    {
+        misc_params          = {};
+        anim_custom_tags_map = {};
+        precond_params       = {};
+        tagging_params       = {};
+        tagexp_list          = {};
+    }
 
 public:
     // INIT
@@ -124,7 +135,7 @@ public:
         return std::addressof(kaputt);
     }
     bool                        init();
-    virtual inline REL::Version getVersion() { return SKSE::PluginDeclaration::GetSingleton()->GetVersion(); }
+    virtual inline REL::Version getVersion() { return {1, 0, 0, 0}; }
     virtual inline bool         isReady() { return ready.load(); }
 
     // FILE IO

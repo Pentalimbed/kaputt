@@ -293,7 +293,11 @@ bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
         (height_diff < precond_params.height_diff_range[0]) || (height_diff > precond_params.height_diff_range[1]))
         return false;
     // Last hostile check
-    if (!isLastHostileInRange(attacker, victim, precond_params.last_hostile_range))
+    bool check_last_hostile =
+        !precond_params.last_hostile_player_follower_only ||
+        attacker->IsPlayerRef() ||
+        attacker->GetActorRuntimeData().currentProcess->lowProcessFlags.all(RE::AIProcess::LowProcessFlags::kFollower);
+    if (check_last_hostile && !isLastHostileInRange(attacker, victim, precond_params.last_hostile_range))
         return false;
     // Race filters
     if (std::ranges::any_of(std::array{attacker, victim}, [&](auto actor) { return precond_params.skipped_race.contains(actor->GetRace()->GetFormEditorID()); }))
@@ -439,6 +443,8 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
         }
 
         playPairedIdle(idle, attacker, victim);
+
+
         return true;
     }
     else

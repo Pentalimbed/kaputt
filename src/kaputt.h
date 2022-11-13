@@ -21,25 +21,27 @@ struct PreconditionParams
         ENABLED,
         PROTECTED,
         DISABLED
-    } essential_protection                    = ESSENTIAL_PROT_ENUM::ENABLED;
-    bool                 protected_protection = true;
-    float                last_hostile_range   = 1024;
-    bool                 furn_sit             = false;
-    bool                 furn_lean            = false;
-    bool                 furn_sleep           = false;
-    std::array<float, 2> height_diff_range    = {-35.f, 35.f};
-    StrSet               skipped_race         = {"FrostbiteSpiderRaceGiant",
-                                                 "SprigganMatronRace",
-                                                 "SprigganEarthMotherRace",
-                                                 "DLC2SprigganBurntRace",
-                                                 "DLC1LD_ForgemasterRace",
-                                                 "DLC2GhostFrostGiantRace"};
+    } essential_protection                                 = ESSENTIAL_PROT_ENUM::ENABLED;
+    bool                 protected_protection              = true;
+    float                last_hostile_range                = 1024;
+    bool                 last_hostile_player_follower_only = false;
+    bool                 furn_sit                          = false;
+    bool                 furn_lean                         = false;
+    bool                 furn_sleep                        = false;
+    std::array<float, 2> height_diff_range                 = {-35.f, 35.f};
+    StrSet               skipped_race                      = {"FrostbiteSpiderRaceGiant",
+                                                              "SprigganMatronRace",
+                                                              "SprigganEarthMotherRace",
+                                                              "DLC2SprigganBurntRace",
+                                                              "DLC1LD_ForgemasterRace",
+                                                              "DLC2GhostFrostGiantRace"};
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
     PreconditionParams,
     essential_protection,
     protected_protection,
     last_hostile_range,
+    last_hostile_player_follower_only,
     furn_sit,
     furn_lean,
     furn_sleep,

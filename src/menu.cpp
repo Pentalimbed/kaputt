@@ -134,10 +134,13 @@ void drawSettingMenu()
             ImGui::SliderFloat("##range", &precond_params.last_hostile_range, 0.f, 4096.f, "%.0f unit");
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("~= %.1f m", precond_params.last_hostile_range * 0.0142875f);
+            ImGui::Text("~= %.1f m | %.2f ft", precond_params.last_hostile_range * 0.0142875f, precond_params.last_hostile_range * 0.046875f);
             ImGui::TableNextColumn();
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("~= %.2f ft", precond_params.last_hostile_range * 0.046875f);
+            ImGui::Checkbox("player group only", &precond_params.last_hostile_player_follower_only);
+            ImGui::SameLine();
+            ImGui::TextDisabled("[?]");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Only do this check on player and followers.\nUseful if you want some grand battle scene with many killmoves.");
 
             ImGui::EndTable();
         }

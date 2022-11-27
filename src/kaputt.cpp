@@ -213,6 +213,11 @@ bool Kaputt::loadConfig(std::string_view dir)
             spdlog::set_level(spdlog::level::trace);
             spdlog::flush_on(spdlog::level::trace);
         }
+        else
+        {
+            spdlog::set_level(spdlog::level::info);
+            spdlog::flush_on(spdlog::level::info);
+        }
     }
     else
     {
@@ -224,6 +229,7 @@ bool Kaputt::loadConfig(std::string_view dir)
     logger::info("Kaputt config loaded.");
     return all_ok;
 }
+
 bool Kaputt::saveConfig(std::string_view dir)
 {
     logger::info("Saving kaputt config {} ...", dir);

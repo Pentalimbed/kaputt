@@ -8,7 +8,7 @@
 #include "PrecisionAPI.h"
 #include "trigger.h"
 
-#define DBGMSG
+// #define DBGMSG
 
 namespace kaputt
 {

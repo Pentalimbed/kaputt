@@ -56,7 +56,10 @@ bool VanillaTrigger::process(RE::Actor* attacker, RE::Actor* victim)
     auto kap = Kaputt::getSingleton();
 
     // distance fix
-    if (attacker->GetPosition().GetDistance(victim->GetPosition()) > 192)
+    // player check for player to dragon etc.
+    // sorry for companions lol
+    // shoulda had a better way to determine targets within reasonable range
+    if (!attacker->IsPlayerRef() && (attacker->GetPosition().GetDistance(victim->GetPosition()) > 192))
         return true;
 
     // 0-no 1-exec 2-killmove
@@ -121,7 +124,6 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
         if (victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) <= hit_data.totalDamage * dmg_mult)
             do_trigger = 2;
     }
-    logger::debug("dmgmult {}", getDamageMult(victim->IsPlayerRef()));
 
     if (!do_trigger)
         return false;

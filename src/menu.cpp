@@ -51,21 +51,10 @@ void drawSettingMenu()
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Misc"))
     {
-        if (ImGui::BeginTable("miscccc", 2))
+        if (ImGui::BeginTable("misc1", 2))
         {
             ImGui::TableSetupColumn("1", 0, 1);
             ImGui::TableSetupColumn("2", 0, 3);
-
-            ImGui::TableNextColumn();
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("Disable Vanilla");
-            ImGui::SameLine();
-            ImGui::TextDisabled("[?]");
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("This sets the vanilla global value 'Killmove' to 0. Doesn't affect dragon bites and sneak kills.");
-            ImGui::TableNextColumn();
-            if (ImGui::Checkbox("##disablevanilla", &misc_params.disable_vanilla))
-                required_refs.vanilla_killmove->value = !misc_params.disable_vanilla;
 
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
@@ -77,6 +66,24 @@ void drawSettingMenu()
                 spdlog::set_level(level);
                 spdlog::flush_on(level);
             }
+
+            ImGui::EndTable();
+        }
+
+        if (ImGui::BeginTable("misc2", 4))
+        {
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Disable Vanilla");
+            ImGui::TableNextColumn();
+            if (ImGui::Checkbox("killmove", &misc_params.disable_vanilla))
+                required_refs.vanilla_killmove->value = !misc_params.disable_vanilla;
+            ImGui::TableNextColumn();
+            if (ImGui::Checkbox("sneak kill", &misc_params.disable_vanilla_sneak))
+                required_refs.vanilla_sneak->value = !misc_params.disable_vanilla_sneak;
+            ImGui::TableNextColumn();
+            if (ImGui::Checkbox("dragon bite", &misc_params.disable_vanilla_dragon))
+                required_refs.vanilla_dragon->value = !misc_params.disable_vanilla_dragon;
 
             ImGui::EndTable();
         }
@@ -128,7 +135,8 @@ void drawSettingMenu()
             ImGui::SameLine();
             ImGui::TextDisabled("[?]");
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Hostile actors outside of this 'safe' range will be ignored.");
+                ImGui::SetTooltip("Hostile actors outside of this 'safe' range will be ignored.\n"
+                                  "Set to 0 to effectively ignore any hostiles.");
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::SliderFloat("##range", &precond_params.last_hostile_range, 0.f, 4096.f, "%.0f unit");

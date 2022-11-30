@@ -13,8 +13,12 @@ namespace kaputt
 {
 bool Kaputt::loadRefs()
 {
-    required_refs.vanilla_killmove        = RE::TESForm::LookupByEditorID<RE::TESGlobal>("Killmove");
-    required_refs.idle_kaputt_root        = RE::TESForm::LookupByEditorID<RE::TESIdleForm>("KaputtRoot");
+    required_refs.vanilla_killmove = RE::TESForm::LookupByEditorID<RE::TESGlobal>("Killmove");
+    required_refs.vanilla_sneak    = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapVanillaSneak");
+    required_refs.vanilla_dragon   = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapVanillaDragonBite");
+
+    required_refs.idle_kaputt_root = RE::TESForm::LookupByEditorID<RE::TESIdleForm>("KaputtRoot");
+
     required_refs.decap_disable_player    = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapDisablePlayerDecap");
     required_refs.decap_requires_perk     = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapReqDecapPerk");
     required_refs.decap_bleed_ignore_perk = RE::TESForm::LookupByEditorID<RE::TESGlobal>("KapBleedIgnoreDecapPerk");
@@ -31,7 +35,10 @@ bool Kaputt::loadRefs()
 
 void Kaputt::applyRefs()
 {
-    required_refs.vanilla_killmove->value        = !misc_params.disable_vanilla;
+    required_refs.vanilla_killmove->value = !misc_params.disable_vanilla;
+    required_refs.vanilla_sneak->value    = !misc_params.disable_vanilla_sneak;
+    required_refs.vanilla_dragon->value   = !misc_params.disable_vanilla_dragon;
+
     required_refs.decap_disable_player->value    = tagging_params.decap_disable_player;
     required_refs.decap_requires_perk->value     = tagging_params.decap_requires_perk;
     required_refs.decap_bleed_ignore_perk->value = tagging_params.decap_bleed_ignore_perk;
@@ -267,11 +274,15 @@ bool Kaputt::saveConfig(std::string_view dir)
 
 bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
 {
-    logger::debug("precondition");
+    logger::debug("> Precondition");
+
     // Playable check
+    logger::debug("playable?");
     if (!(animPlayable(attacker) && animPlayable(victim)))
         return false;
+
     // Essential check
+    logger::debug("essential?");
     if (victim->IsEssential())
         switch (precond_params.essential_protection)
         {
@@ -284,37 +295,48 @@ bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
             default:
                 break;
         }
+
     // Protected check
+    logger::debug("protected?");
     if (precond_params.protected_protection && victim->IsProtected() && !attacker->IsPlayerRef())
         return false;
+
     // Furniture anim check
+    logger::debug("furniture?");
     if (isFurnitureAnimType(victim, RE::BSFurnitureMarker::AnimationType::kSit) && !precond_params.furn_sit)
         return false;
     if (isFurnitureAnimType(victim, RE::BSFurnitureMarker::AnimationType::kLean) && !precond_params.furn_lean)
         return false;
     if (isFurnitureAnimType(victim, RE::BSFurnitureMarker::AnimationType::kSleep) && !precond_params.furn_sleep)
         return false;
+
     // Height diff check
+    logger::debug("height diff?");
     if (auto height_diff = victim->GetPositionZ() - attacker->GetPositionZ();
         (height_diff < precond_params.height_diff_range[0]) || (height_diff > precond_params.height_diff_range[1]))
         return false;
+
     // Last hostile check
+    logger::debug("last hostile?");
     bool check_last_hostile =
         !precond_params.last_hostile_player_follower_only ||
         attacker->IsPlayerRef() ||
         attacker->GetActorRuntimeData().currentProcess->lowProcessFlags.all(RE::AIProcess::LowProcessFlags::kFollower);
     if (check_last_hostile && !isLastHostileInRange(attacker, victim, precond_params.last_hostile_range))
         return false;
+
     // Race filters
+    logger::debug("race?");
     if (std::ranges::any_of(std::array{attacker, victim}, [&](auto actor) { return precond_params.skipped_race.contains(actor->GetRace()->GetFormEditorID()); }))
         return false;
+
     // Finally
     return true;
 }
 
 bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStruct& submit_info)
 {
-    logger::debug("filtering");
+    logger::debug("> Filtering");
 
     std::vector<std::string_view> anims        = listAnims();
     StrMap<StrSet>                exp_tags_map = {};

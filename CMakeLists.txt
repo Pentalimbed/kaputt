@@ -6,7 +6,7 @@ message("Using toolchain file ${CMAKE_TOOLCHAIN_FILE}.")
 ########################################################################################################################
 project(
         Kaputt
-        VERSION 1.2.4
+        VERSION 1.2.5
         DESCRIPTION ""
         LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)

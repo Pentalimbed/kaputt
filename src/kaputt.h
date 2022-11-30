@@ -9,10 +9,12 @@ namespace kaputt
 
 struct MiscParams
 {
-    bool disable_vanilla  = true;
-    bool enable_debug_log = false;
+    bool disable_vanilla        = true;
+    bool disable_vanilla_sneak  = true;
+    bool disable_vanilla_dragon = true;
+    bool enable_debug_log       = false;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MiscParams, disable_vanilla, enable_debug_log)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MiscParams, disable_vanilla, disable_vanilla_sneak, disable_vanilla_dragon, enable_debug_log)
 
 struct PreconditionParams
 {
@@ -50,13 +52,17 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 
 struct RequiredRefs
 {
-    RE::TESGlobal*   vanilla_killmove        = nullptr;
-    RE::TESIdleForm* idle_kaputt_root        = nullptr;
-    RE::TESGlobal*   decap_disable_player    = nullptr;
-    RE::TESGlobal*   decap_requires_perk     = nullptr;
-    RE::TESGlobal*   decap_bleed_ignore_perk = nullptr;
-    RE::TESGlobal*   decap_percent           = nullptr;
-    RE::TESGlobal*   decap_use_chance        = nullptr;
+    RE::TESGlobal* vanilla_killmove = nullptr;
+    RE::TESGlobal* vanilla_sneak    = nullptr;
+    RE::TESGlobal* vanilla_dragon   = nullptr;
+
+    RE::TESIdleForm* idle_kaputt_root = nullptr;
+
+    RE::TESGlobal* decap_disable_player    = nullptr;
+    RE::TESGlobal* decap_requires_perk     = nullptr;
+    RE::TESGlobal* decap_bleed_ignore_perk = nullptr;
+    RE::TESGlobal* decap_percent           = nullptr;
+    RE::TESGlobal* decap_use_chance        = nullptr;
 };
 
 struct TaggingParams

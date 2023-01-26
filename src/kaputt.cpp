@@ -274,7 +274,7 @@ bool Kaputt::saveConfig(std::string_view dir)
 
 bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
 {
-    logger::debug("> Precondition");
+    logger::debug("> Precondition | Attacker: {} | Victim: {}", attacker->GetName(), victim->GetName());
 
     // Playable check
     logger::debug("playable?");
@@ -336,7 +336,7 @@ bool Kaputt::precondition(const RE::Actor* attacker, const RE::Actor* victim)
 
 bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStruct& submit_info)
 {
-    logger::debug("> Filtering");
+    logger::debug("> Filtering | Attacker: {} | Victim: {}", attacker->GetName(), victim->GetName());
 
     std::vector<std::string_view> anims        = listAnims();
     StrMap<StrSet>                exp_tags_map = {};
@@ -360,25 +360,35 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
             std::ranges::any_of(tagging_params.banned_tags, [&](auto& tag) { return exp_tags_map.find(edid)->second.contains(tag); }) ||
             std::ranges::any_of(submit_info.banned_tags, [&](auto& tag) { return exp_tags_map.find(edid)->second.contains(tag); });
     });
+    if (anims.empty())
+        return false;
 
     // skeleton tag
-    auto att_race_tag = "a_" + getSkeletonRace(attacker);
-    auto vic_race_tag = "v_" + getSkeletonRace(victim);
+    logger::debug("Hardcoded skeleton check. Banning:");
+    auto att_banned_race = getBannedSkels(attacker, "a_");
+    auto vic_banned_race = getBannedSkels(victim, "v_");
     std::erase_if(anims, [&](auto& edid) {
-        return !(
-            (att_race_tag == "a_" || exp_tags_map.find(edid)->second.contains(att_race_tag)) &&
-            (vic_race_tag == "v_" || exp_tags_map.find(edid)->second.contains(vic_race_tag)));
+        return std::ranges::any_of(att_banned_race, [&](auto& tag) { return exp_tags_map.find(edid)->second.contains(tag); }) ||
+            std::ranges::any_of(vic_banned_race, [&](auto& tag) { return exp_tags_map.find(edid)->second.contains(tag); });
     });
+    if (spdlog::get_level() == spdlog::level::trace)
+    {
+        for (const auto& tag : att_banned_race)
+            logger::debug("{}", tag);
+        for (const auto& tag : vic_banned_race)
+            logger::debug("{}", tag);
+    }
+    if (anims.empty())
+        return false;
 
     // IdleTaggerLOL
     if (required_refs.idle_kaputt_root->childIdles)
     {
         StrMap<bool>             item_results = {};
         RE::ConditionCheckParams params(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
-        for (auto form : *required_refs.idle_kaputt_root->childIdles)
+        for (auto const form : *required_refs.idle_kaputt_root->childIdles)
         {
-            if (anims.empty())
-                break;
+            if (anims.empty()) break;
 
             auto             idle_form = form->As<RE::TESIdleForm>();
             std::string_view idle_edid = idle_form->GetFormEditorID();
@@ -421,7 +431,9 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
                 }
             }
             else
-                result = idle_form->conditions(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
+                result = idle_form->conditions.IsTrue(attacker->As<RE::TESObjectREFR>(), victim->As<RE::TESObjectREFR>());
+
+            logger::debug("Tagger item {}, result {}", idle_edid, result);
 
             if (auto tag_idx = idle_edid.find_first_of('_'); tag_idx != std::string::npos) // Has tag
             {
@@ -443,9 +455,9 @@ bool Kaputt::submit(RE::Actor* attacker, RE::Actor* victim, const SubmitInfoStru
                             (!ban_tag.empty() && exp_tags_map.find(edid)->second.contains(ban_tag));
                     });
                 }
-            }
 
-            logger::debug("Tagger item {}, result {}, {} left", idle_edid, result, anims.size());
+                logger::debug("\t{}, {} left", req_tag.empty() ? "Banning" : "Requiring", anims.size());
+            }
 
             item_results.emplace(idle_form->GetFormEditorID(), result);
         }

@@ -108,5 +108,6 @@ inline float getDamageMult(bool is_victim_player)
 }
 
 std::string getSkeletonRace(const RE::Actor* actor);
+StrSet      getBannedSkels(const RE::Actor* actor, std::string_view prefix);
 
 } // namespace kaputt

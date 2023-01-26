@@ -311,4 +311,59 @@ std::string getSkeletonRace(const RE::Actor* actor)
     return {};
 }
 
+StrSet getBannedSkels(const RE::Actor* actor, std::string_view prefix)
+{
+    StrSet      banned = {};
+    std::string prefix_str{prefix};
+    auto        skel = actor->GetRace()->skeletonModels[actor->GetActorBase()->IsFemale()].model;
+    if (stricmp(skel.c_str(), "Actors\\DLC02\\DwarvenBallistaCenturion\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "ballista");
+    if (stricmp(skel.c_str(), "Actors\\Bear\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "bear");
+    if (stricmp(skel.c_str(), "Actors\\DLC02\\BoarRiekling\\Character Assets\\SkeletonBoar.nif")) banned.insert(prefix_str + "boar");
+    if (stricmp(skel.c_str(), "Actors\\DwarvenSteamCenturion\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "centurion");
+    if (stricmp(skel.c_str(), "Actors\\DLC01\\ChaurusFlyer\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "chaurushunter");
+    if (stricmp(skel.c_str(), "Actors\\Dragon\\Character Assets\\Skeleton.nif")) banned.insert(prefix_str + "dragon");
+    if (stricmp(skel.c_str(), "Actors\\Draugr\\Character Assets\\Skeleton.nif")) banned.insert(prefix_str + "draugr");
+    if (stricmp(skel.c_str(), "Actors\\Draugr\\Character Assets\\SkeletonF.nif")) banned.insert(prefix_str + "draugr");
+    if (stricmp(skel.c_str(), "Actors\\Draugr\\Character Assets\\SkeletonS.nif")) banned.insert(prefix_str + "skeleton");
+    if (stricmp(skel.c_str(), "Actors\\Falmer\\Character Assets\\Skeleton.nif")) banned.insert(prefix_str + "falmer");
+    if (stricmp(skel.c_str(), "Actors\\DLC01\\VampireBrute\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "gargoyle");
+    if (stricmp(skel.c_str(), "Actors\\Giant\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "giant");
+    if (stricmp(skel.c_str(), "Actors\\Hagraven\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "hagraven");
+    if (stricmp(skel.c_str(), "Actors\\DLC02\\BenthicLurker\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "lurker");
+    if (stricmp(skel.c_str(), "Actors\\DLC02\\Riekling\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "riekling");
+    if (stricmp(skel.c_str(), "Actors\\SabreCat\\Character Assets\\Skeleton.nif")) banned.insert(prefix_str + "sabrecat");
+    if (stricmp(skel.c_str(), "Actors\\DLC02\\Scrib\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "ashhopper");
+    if (stricmp(skel.c_str(), "Actors\\FrostbiteSpider\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "spider");
+    if (stricmp(skel.c_str(), "Actors\\Spriggan\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "spriggan");
+    if (stricmp(skel.c_str(), "Actors\\Troll\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "troll");
+    if (stricmp(skel.c_str(), "Actors\\Canine\\Character Assets Wolf\\skeleton.nif")) banned.insert(prefix_str + "wolf");
+    if (stricmp(skel.c_str(), "Actors\\WerewolfBeast\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "werewolf");
+    if (stricmp(skel.c_str(), "Actors\\VampireLord\\Character Assets\\Skeleton.nif")) banned.insert(prefix_str + "vamplord");
+    if (stricmp(skel.c_str(), "Actors\\Chaurus\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "chaurus");
+    if (stricmp(skel.c_str(), "Actors\\Deer\\Character Assets\\Skeleton.nif")) banned.insert(prefix_str + "deer");
+    if (stricmp(skel.c_str(), "Actors\\Canine\\Character Assets Dog\\skeleton.nif")) banned.insert(prefix_str + "dog");
+    if (stricmp(skel.c_str(), "Actors\\DragonPriest\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "priest");
+    if (stricmp(skel.c_str(), "Actors\\DwarvenSphereCenturion\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "sphere");
+    if (stricmp(skel.c_str(), "Actors\\DwarvenSpider\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "dwarvenspider");
+    if (stricmp(skel.c_str(), "Actors\\AtronachFlame\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "flameatronach");
+    if (stricmp(skel.c_str(), "Actors\\AtronachFrost\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "frostatronach");
+    if (stricmp(skel.c_str(), "Actors\\AtronachStorm\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "stormatronach");
+    if (stricmp(skel.c_str(), "Actors\\Goat\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "goat");
+    if (stricmp(skel.c_str(), "Actors\\Horker\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "horker");
+    if (stricmp(skel.c_str(), "Actors\\Horse\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "horse");
+    if (stricmp(skel.c_str(), "Actors\\IceWraith\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "wraith");
+    if (stricmp(skel.c_str(), "Actors\\Mammoth\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "mammoth");
+    if (stricmp(skel.c_str(), "Actors\\Skeever\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "skeever");
+    if (stricmp(skel.c_str(), "Actors\\Slaughterfish\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "slaughterfish");
+    if (stricmp(skel.c_str(), "Actors\\Wisp\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "wisp");
+    if (stricmp(skel.c_str(), "Actors\\Witchlight\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "witchlight");
+    if (stricmp(skel.c_str(), "Actors\\Cow\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "cow");
+    if (stricmp(skel.c_str(), "Actors\\Ambient\\Hare\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "rabbit");
+    if (stricmp(skel.c_str(), "Actors\\Mudcrab\\Character Assets\\skeleton.nif")) banned.insert(prefix_str + "mudcrab");
+    if (stricmp(skel.c_str(), "Actors\\DLC02\\HMDaedra\\Character Assets\\Skeleton.nif")) banned.insert(prefix_str + "seeker");
+    if (stricmp(skel.c_str(), "Actors\\DLC02\\Netch\\CharacterAssets\\skeleton.nif")) banned.insert(prefix_str + "netch");
+
+    return banned;
+}
+
 } // namespace kaputt

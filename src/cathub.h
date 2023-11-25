@@ -8,7 +8,7 @@
 
 namespace cathub
 {
-constexpr REL::Version API_VER = {1, 6, 0, 0};
+constexpr REL::Version API_VER = {1, 7, 0, 0};
 
 class CatHubAPI
 {

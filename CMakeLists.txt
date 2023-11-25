@@ -1,87 +1,58 @@
 cmake_minimum_required(VERSION 3.21)
-message("Using toolchain file ${CMAKE_TOOLCHAIN_FILE}.")
 
-########################################################################################################################
-## Define project
-########################################################################################################################
 project(
-        Kaputt
-        VERSION 1.2.6
-        DESCRIPTION ""
-        LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+	Kaputt
+	VERSION 1.2.7
+	LANGUAGES CXX
+)
 
-include(GNUInstallDirs)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.rc.in
-        ${CMAKE_CURRENT_BINARY_DIR}/version.rc
-        @ONLY)
+# #######################################################################################################################
+# # Add CMake features
+# #######################################################################################################################
+include(XSEPlugin)
 
-set(headers
-        src/re.h
-        src/cathub.h
-        src/menu.h
-        src/utils.h
-        src/kaputtAPI.h
-        src/kaputt.h
-        src/trigger.h
-        src/tasks.h
-        
-        src/PrecisionAPI.h)
-
-set(sources
-        src/re.cpp
-        src/main.cpp
-        src/menu.cpp
-        src/utils.cpp
-        src/kaputt.cpp
-        src/trigger.cpp
-        src/tasks.cpp
-
-        ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
-
-source_group(
-        TREE ${CMAKE_CURRENT_SOURCE_DIR}
-        FILES
-        ${headers}
-        ${sources})
-
-########################################################################################################################
-## Configure target DLL
-########################################################################################################################
-find_package(CommonLibSSE CONFIG REQUIRED)
-find_package(imgui REQUIRED CONFIG)
+# #######################################################################################################################
+# # Find dependencies
+# #######################################################################################################################
+find_package(xbyak CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
-find_path(ARTICUNO_INCLUDE_DIRS "articuno/articuno.h")
+find_package(imgui CONFIG REQUIRED)
+find_package(directxtk CONFIG REQUIRED)
 
-add_commonlibsse_plugin(${PROJECT_NAME} SOURCES ${headers} ${sources})
-add_library("${PROJECT_NAME}::${PROJECT_NAME}" ALIAS "${PROJECT_NAME}")
+target_include_directories(
+	${PROJECT_NAME}
+	PRIVATE
+)
 
-target_include_directories(${PROJECT_NAME}
-        PRIVATE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
-        $<INSTALL_INTERFACE:src>
-        ${ARTICUNO_INCLUDE_DIRS})
+target_link_libraries(
+	${PROJECT_NAME}
+	PRIVATE
+	debug ${CMAKE_CURRENT_SOURCE_DIR}/include/detours/Debug/detours.lib
+	optimized ${CMAKE_CURRENT_SOURCE_DIR}/include/detours/Release/detours.lib
+	xbyak::xbyak
+	nlohmann_json::nlohmann_json
+	imgui::imgui
+	Microsoft::DirectXTK
+)
 
-target_include_directories(${PROJECT_NAME}
-        PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-
-target_link_libraries(${PROJECT_NAME}
-        PRIVATE
-        imgui::imgui
-        nlohmann_json::nlohmann_json)
-
-target_precompile_headers(${PROJECT_NAME}
-        PRIVATE
-        src/PCH.h)
-
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/Sample"
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-
-install(TARGETS ${PROJECT_NAME}
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+# https://gitlab.kitware.com/cmake/cmake/-/issues/24922#note_1371990
+if(MSVC_VERSION GREATER_EQUAL 1936 AND MSVC_IDE) # 17.6+
+	# When using /std:c++latest, "Build ISO C++23 Standard Library Modules" defaults to "Yes".
+	# Default to "No" instead.
+	#
+	# As of CMake 3.26.4, there isn't a way to control this property
+	# (https://gitlab.kitware.com/cmake/cmake/-/issues/24922),
+	# We'll use the MSBuild project system instead
+	# (https://learn.microsoft.com/en-us/cpp/build/reference/vcxproj-file-structure)
+	file(CONFIGURE OUTPUT "${CMAKE_BINARY_DIR}/Directory.Build.props" CONTENT [==[
+<Project>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <BuildStlModules>false</BuildStlModules>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>
+]==] @ONLY)
+endif()

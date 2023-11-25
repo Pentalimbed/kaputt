@@ -528,9 +528,9 @@ void drawAnimationMenu()
     if (ImGui::BeginTable("tagexp", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
                           {0.f, (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 5}))
     {
-        ImGui::TableSetupColumn("from", ImGuiTableColumnFlags_WidthStretch, 0.2);
-        ImGui::TableSetupColumn("arrow", ImGuiTableColumnFlags_WidthStretch, 0.05);
-        ImGui::TableSetupColumn("to", ImGuiTableColumnFlags_WidthStretch, 0.75);
+        ImGui::TableSetupColumn("from", ImGuiTableColumnFlags_WidthStretch, 0.2f);
+        ImGui::TableSetupColumn("arrow", ImGuiTableColumnFlags_WidthStretch, 0.05f);
+        ImGui::TableSetupColumn("to", ImGuiTableColumnFlags_WidthStretch, 0.75f);
 
         std::string swap_from = {}, swap_to = {};
         for (auto& [from, to] : tagexp_list)
@@ -579,9 +579,9 @@ void drawAnimationMenu()
     if (ImGui::BeginTable("filtertab", 4))
     {
         ImGui::TableSetupColumn("filter", ImGuiTableColumnFlags_WidthStretch, 0.5);
-        ImGui::TableSetupColumn("1", ImGuiTableColumnFlags_WidthStretch, 0.5 / 3);
-        ImGui::TableSetupColumn("2", ImGuiTableColumnFlags_WidthStretch, 0.5 / 3);
-        ImGui::TableSetupColumn("3", ImGuiTableColumnFlags_WidthStretch, 0.5 / 3);
+        ImGui::TableSetupColumn("1", ImGuiTableColumnFlags_WidthStretch, 0.5f / 3);
+        ImGui::TableSetupColumn("2", ImGuiTableColumnFlags_WidthStretch, 0.5f / 3);
+        ImGui::TableSetupColumn("3", ImGuiTableColumnFlags_WidthStretch, 0.5f / 3);
 
         ImGui::TableNextColumn();
         ImGui::InputText("Filter by", &filter_text);
@@ -603,8 +603,8 @@ void drawAnimationMenu()
         ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;
     if (ImGui::BeginTable("Animation Entries", 2, table_flags, {0.f, -FLT_MIN}))
     {
-        ImGui::TableSetupColumn("Editor ID", ImGuiTableColumnFlags_WidthStretch, 0.4);
-        ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.6);
+        ImGui::TableSetupColumn("Editor ID", ImGuiTableColumnFlags_WidthStretch, 0.4f);
+        ImGui::TableSetupColumn("Tags", ImGuiTableColumnFlags_WidthStretch, 0.6f);
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableHeadersRow();
 

@@ -8,6 +8,8 @@
 #include "PrecisionAPI.h"
 #include "trigger.h"
 
+#define DLLEXPORT __declspec(dllexport)
+
 // #define DBGMSG
 
 namespace kaputt
@@ -132,23 +134,41 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
 }
 } // namespace kaputt
 
-SKSEPluginLoad(const SKSE::LoadInterface* skse)
+extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
     using namespace kaputt;
 
+#ifndef NDEBUG
+    while (!WinAPI::IsDebuggerPresent())
+    {};
+#endif
     installLog();
+    logger::info("Loaded {} {}", Plugin::NAME, Plugin::VERSION.string());
 
-    auto* plugin  = SKSE::PluginDeclaration::GetSingleton();
-    auto  version = plugin->GetVersion();
-    logger::info("{} {} is loading...", plugin->GetName(), version);
-
-    SKSE::Init(skse);
+    SKSE::Init(a_skse);
     SKSE::AllocTrampoline(14 * 3);
 
     auto messaging = SKSE::GetMessagingInterface();
     if (!messaging->RegisterListener("SKSE", processMessage))
         return false;
 
-    logger::info("{} has finished loading.", plugin->GetName());
+    logger::info("{} has finished loading.", Plugin::NAME);
+    return true;
+}
+
+extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() noexcept {
+    SKSE::PluginVersionData v;
+    v.PluginName(Plugin::NAME.data());
+    v.PluginVersion(Plugin::VERSION);
+    v.UsesAddressLibrary(true);
+    v.HasNoStructUse();
+    return v;
+}();
+
+extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface*, SKSE::PluginInfo* pluginInfo)
+{
+    pluginInfo->name        = SKSEPlugin_Version.pluginName;
+    pluginInfo->infoVersion = SKSE::PluginInfo::kVersion;
+    pluginInfo->version     = SKSEPlugin_Version.pluginVersion;
     return true;
 }

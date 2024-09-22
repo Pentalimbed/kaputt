@@ -2,7 +2,7 @@
 
 #include "kaputt.h"
 #include "menu.h"
-#include "cathub.h"
+#include "menu_api.h"
 #include "re.h"
 #include "tasks.h"
 #include "PrecisionAPI.h"
@@ -20,7 +20,7 @@ bool installLog()
     if (!path)
         return false;
 
-    *path /= fmt::format(FMT_STRING("{}.log"), SKSE::PluginDeclaration::GetSingleton()->GetName());
+    *path /= std::format("{}.log", SKSE::PluginDeclaration::GetSingleton()->GetName());
     auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
 
     auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
@@ -76,20 +76,24 @@ void initPrecisionAPI()
         logger::info("Precision API not found.");
 }
 
-void integrateCatHub()
+void integrateCatMenu()
 {
-    logger::info("Looking for CatHub...");
+    logger::info("Looking for CatMenu...");
 
-    auto result = cathub::RequestCatHubAPI();
+    auto result = CatMenu::RequestCatMenuAPI();
     if (result.index() == 0)
     {
-        auto cathub_api = std::get<0>(result);
-        ImGui::SetCurrentContext(cathub_api->getContext());
-        cathub_api->addMenu("Kaputt", drawCatMenu);
-        logger::info("CatHub integration succeed!");
+        auto catmenu_api = std::get<0>(result);
+
+        ImGui::SetCurrentContext(catmenu_api->GetContext());
+
+        RE::BSString menu_name{"Kaputt"};
+        catmenu_api->RegisterMenuDrawFunc(menu_name, drawCatMenu);
+
+        logger::info("CatMenu integration succeed!");
     }
     else
-        logger::warn("CatHub integration failed! In-game config disabled. Error: {}", std::get<1>(result));
+        logger::warn("CatMenu integration failed! In-game config disabled. Error: {}", std::get<1>(result));
 }
 
 void processMessage(SKSE::MessagingInterface::Message* a_msg)
@@ -104,7 +108,7 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
 
             if (Kaputt::getSingleton()->isReady())
             {
-                integrateCatHub(); // Cathub
+                integrateCatMenu(); // Cathub
                 // initPrecisionAPI();
 
                 logger::info("Installing hook...");
@@ -134,16 +138,15 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
 }
 } // namespace kaputt
 
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
+SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
+
     using namespace kaputt;
 
-#ifndef NDEBUG
-    while (!WinAPI::IsDebuggerPresent())
-    {};
-#endif
     installLog();
-    logger::info("Loaded {} {}", Plugin::NAME, Plugin::VERSION.string());
+
+    const auto plugin = SKSE::PluginDeclaration::GetSingleton();
+    logger::info("{} v{} is loading...", plugin->GetName(), plugin->GetVersion());
 
     SKSE::Init(a_skse);
     SKSE::AllocTrampoline(14 * 3);
@@ -152,23 +155,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
     if (!messaging->RegisterListener("SKSE", processMessage))
         return false;
 
-    logger::info("{} has finished loading.", Plugin::NAME);
-    return true;
-}
+    logger::info("{} loaded.", plugin->GetName());
 
-extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() noexcept {
-    SKSE::PluginVersionData v;
-    v.PluginName(Plugin::NAME.data());
-    v.PluginVersion(Plugin::VERSION);
-    v.UsesAddressLibrary(true);
-    v.HasNoStructUse();
-    return v;
-}();
-
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface*, SKSE::PluginInfo* pluginInfo)
-{
-    pluginInfo->name        = SKSEPlugin_Version.pluginName;
-    pluginInfo->infoVersion = SKSE::PluginInfo::kVersion;
-    pluginInfo->version     = SKSEPlugin_Version.pluginVersion;
     return true;
 }

@@ -8,10 +8,8 @@
 
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
-#include "Plugin.h"
 
 namespace logger = SKSE::log;
-namespace WinAPI = SKSE::WinAPI;
 
 using namespace std::literals;
 

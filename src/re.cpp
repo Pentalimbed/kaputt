@@ -237,7 +237,7 @@ void playPairedIdle(RE::TESIdleForm* idle, RE::Actor* attacker, RE::Actor* victi
     auto edid = idle->GetFormEditorID();
     logger::debug("Now playing {} between {} and {}", edid, attacker->GetName(), victim->GetName());
     _playPairedIdle(attacker->GetActorRuntimeData().currentProcess, attacker, RE::DEFAULT_OBJECT::kActionIdle, idle, true, false, victim);
-    kaputt::setStatusMessage(fmt::format("Last played by this mod: {}", edid)); // notify menu
+    kaputt::setStatusMessage(std::format("Last played by this mod: {}", edid)); // notify menu
 }
 void testPlayPairedIdle(RE::TESIdleForm* idle, float max_range)
 {

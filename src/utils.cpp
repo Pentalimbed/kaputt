@@ -69,7 +69,7 @@ std::string scanCode2String(uint32_t scancode)
             case 5:
             case 6:
             case 7:
-                return fmt::format("Mouse Button {}", key);
+                return std::format("Mouse Button {}", key);
             case 8:
                 return "Wheel Up";
             case 9:
@@ -83,9 +83,9 @@ std::string scanCode2String(uint32_t scancode)
         TCHAR lpszName[256];
         if (GetKeyNameText(scancode << 16, lpszName, sizeof(lpszName)))
         {
-            int         size_needed = WideCharToMultiByte(CP_UTF8, 0, lpszName, wcslen(lpszName), NULL, 0, NULL, NULL);
+            int         size_needed = WideCharToMultiByte(CP_UTF8, 0, lpszName, (int)wcslen(lpszName), NULL, 0, NULL, NULL);
             std::string key_str(size_needed, 0);
-            WideCharToMultiByte(CP_UTF8, 0, lpszName, wcslen(lpszName), &key_str[0], size_needed, NULL, NULL);
+            WideCharToMultiByte(CP_UTF8, 0, lpszName, (int)wcslen(lpszName), &key_str[0], size_needed, NULL, NULL);
             return key_str;
         }
         else

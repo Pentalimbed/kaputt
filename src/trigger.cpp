@@ -137,7 +137,7 @@ bool PostHitTrigger::process(RE::Actor* victim, RE::HitData& hit_data)
     if ((do_trigger == 1) && instakill) // instakill operation
         hit_data.totalDamage = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth) / getDamageMult(victim->IsPlayerRef()) + 10;
 
-    auto health = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
+    // auto health = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
 
     return kap->submit(attacker, victim);
 }

@@ -50,9 +50,9 @@ target("Kaputt")
     add_deps("commonlibsse-ng")
     -- add commonlibsse-ng plugin
     add_rules("commonlibsse-ng.plugin", {
-        name = "CatMenuExample",
+        name = "Kaputt",
         author = "FiveLimbedCat",
-        description = "Example plugin for CatMenu."
+        description = "Killmove manager."
     })
     
     add_packages("spdlog","nlohmann_json")

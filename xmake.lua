@@ -35,7 +35,7 @@ set_config("skyrim_vr", false) -- no xmake support it seems
 
 -- set requires
 add_requires("spdlog", { configs = { header_only = false, wchar = true, std_format = true } })
-add_requires("nlohmann_json")
+add_requires("nlohmann_json", "imgui", "simpleini")
 
 -- targets
 target("Kaputt")
@@ -55,10 +55,7 @@ target("Kaputt")
         description = "Killmove manager."
     })
     
-    add_packages("spdlog","nlohmann_json")
-
-    -- FUCK_API uses Dear ImGui's public types, while all UI calls are dispatched through FUCK.dll
-    add_includedirs("extern/catmenu")
+    add_packages("spdlog", "nlohmann_json", "imgui", "simpleini")
 
     -- add src files
     add_files("src/**.cpp")
@@ -68,4 +65,3 @@ target("Kaputt")
     add_includedirs("include")
     add_headerfiles("include/**.h")
     set_pcxxheader("include/PCH.h")
-    add_links("include/detours/Release/detours.lib")

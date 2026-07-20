@@ -612,7 +612,7 @@ void drawAnimationMenu()
     }
 
     // list of anims
-    constexpr auto table_flags =
+    const auto table_flags =
         FUCK::TableFlags::kBorders | FUCK::TableFlags::kScrollY;
     if (FUCK::BeginTable("Animation Entries", 2, table_flags, {0.f, -FLT_MIN}))
     {

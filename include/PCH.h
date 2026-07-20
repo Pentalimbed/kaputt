@@ -3,6 +3,7 @@
 #define UNICODE
 #define _UNICODE
 #define WIN32_MEAN_AND_LEAN
+#define NOMINMAX
 
 #define TOML_EXCEPTIONS 0
 

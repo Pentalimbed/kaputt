@@ -1,5 +1,6 @@
 #pragma once
 #include <imgui.h>
+#include <SimpleIni.h>
 
 #define FUCK_API_VERSION 3
 

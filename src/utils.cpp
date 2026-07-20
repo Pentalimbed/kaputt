@@ -1,16 +1,15 @@
 #include "utils.h"
+#include "FUCK_API.h"
 
 #include <dinput.h>
 
-#include <imgui.h>
-#include "imgui_stdlib.h"
 
 namespace kaputt
 {
 bool drawTagsInputText(std::string_view label, StrSet& tags)
 {
     auto tagstr = joinTags(tags);
-    auto result = ImGui::InputText(label.data(), &tagstr);
+    auto result = FUCK::InputText(label.data(), &tagstr);
     if (result)
         tags = splitTags(tagstr);
     return result;

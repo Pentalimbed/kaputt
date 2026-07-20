@@ -57,11 +57,8 @@ target("Kaputt")
     
     add_packages("spdlog","nlohmann_json")
 
-    -- add catmenu
-    add_includedirs("extern/catmenu");
-    add_headerfiles("extern/catmenu/*.h")
-    add_defines("IMGUI_API=__declspec(dllimport)") -- import symbols
-    add_links("extern/catmenu/lib/imgui.lib")
+    -- FUCK_API uses Dear ImGui's public types, while all UI calls are dispatched through FUCK.dll
+    add_includedirs("extern/catmenu")
 
     -- add src files
     add_files("src/**.cpp")

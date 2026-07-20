@@ -2,7 +2,7 @@
 
 #include "kaputt.h"
 #include "menu.h"
-#include "menu_api.h"
+#include "FUCK_API.h"
 #include "re.h"
 #include "tasks.h"
 #include "PrecisionAPI.h"
@@ -76,24 +76,17 @@ void initPrecisionAPI()
         logger::info("Precision API not found.");
 }
 
-void integrateCatMenu()
+void integrateFUCK()
 {
-    logger::info("Looking for CatMenu...");
+    logger::info("Looking for FUCK...");
 
-    auto result = CatMenu::RequestCatMenuAPI();
-    if (result.index() == 0)
+    if (FUCK::Connect("Kaputt"))
     {
-        auto catmenu_api = std::get<0>(result);
-
-        ImGui::SetCurrentContext(catmenu_api->GetContext());
-
-        RE::BSString menu_name{"Kaputt"};
-        catmenu_api->RegisterMenuDrawFunc(menu_name, drawCatMenu);
-
-        logger::info("CatMenu integration succeed!");
+        registerMenu();
+        logger::info("FUCK integration succeeded!");
     }
     else
-        logger::warn("CatMenu integration failed! In-game config disabled. Error: {}", std::get<1>(result));
+        logger::warn("FUCK integration failed! In-game config disabled.");
 }
 
 void processMessage(SKSE::MessagingInterface::Message* a_msg)
@@ -108,7 +101,7 @@ void processMessage(SKSE::MessagingInterface::Message* a_msg)
 
             if (Kaputt::getSingleton()->isReady())
             {
-                integrateCatMenu(); // Cathub
+                integrateFUCK();
                 // initPrecisionAPI();
 
                 logger::info("Installing hook...");

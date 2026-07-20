@@ -2,6 +2,6 @@
 
 namespace kaputt
 {
-bool drawCatMenu();
+void registerMenu();
 void setStatusMessage(std::string_view msg);
 } // namespace kaputt

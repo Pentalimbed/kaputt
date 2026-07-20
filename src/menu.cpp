@@ -62,7 +62,7 @@ void drawSettingMenu()
     FUCK::SetNextItemOpen(true, ImGuiCond_Once);
     if (FUCK::CollapsingHeader("Misc"))
     {
-        if (FUCK::BeginTable("misc1", 2))
+        if (FUCK::BeginTable("misc1", 2, FUCK::TableFlags::kSizingStretchProp))
         {
             FUCK::TableSetupColumn("1", FUCK::TableColumnFlags::kNone, 1.0f);
             FUCK::TableSetupColumn("2", FUCK::TableColumnFlags::kNone, 3.0f);
@@ -163,7 +163,7 @@ void drawSettingMenu()
 
             FUCK::EndTable();
         }
-        if (FUCK::BeginTable("smol tbl", 2))
+        if (FUCK::BeginTable("smol tbl", 2, FUCK::TableFlags::kSizingStretchProp))
         {
             FUCK::TableSetupColumn("1", FUCK::TableColumnFlags::kNone, 1.0f);
             FUCK::TableSetupColumn("2", FUCK::TableColumnFlags::kNone, 3.0f);
@@ -198,7 +198,7 @@ void drawSettingMenu()
     FUCK::SetNextItemOpen(true, ImGuiCond_Once);
     if (FUCK::CollapsingHeader("Animation Filtering"))
     {
-        if (FUCK::BeginTable("tagger0", 2))
+        if (FUCK::BeginTable("tagger0", 2, FUCK::TableFlags::kSizingStretchProp))
         {
             FUCK::TableSetupColumn("1", FUCK::TableColumnFlags::kNone, 1.0f);
             FUCK::TableSetupColumn("2", FUCK::TableColumnFlags::kNone, 3.0f);
@@ -258,7 +258,7 @@ void drawSettingMenu()
 
             FUCK::EndTable();
         }
-        if (FUCK::BeginTable("tagger2", 3))
+        if (FUCK::BeginTable("tagger2", 3, FUCK::TableFlags::kSizingStretchProp))
         {
             FUCK::TableSetupColumn("1", FUCK::TableColumnFlags::kNone, 1.0f);
             FUCK::TableSetupColumn("2", FUCK::TableColumnFlags::kNone, 1.0f);
@@ -538,7 +538,7 @@ void drawAnimationMenu()
         FUCK::EndTable();
     }
 
-    if (FUCK::BeginTable("tagexp", 3, FUCK::TableFlags::kBorders | FUCK::TableFlags::kScrollY,
+    if (FUCK::BeginTable("tagexp", 3, FUCK::TableFlags::kBorders | FUCK::TableFlags::kScrollY | FUCK::TableFlags::kSizingStretchProp,
                          {0.f, (FUCK::GetFrameHeight()) * 5}))
     {
         FUCK::TableSetupColumn("from", FUCK::TableColumnFlags::kWidthStretch, 0.2f);
@@ -589,7 +589,7 @@ void drawAnimationMenu()
 
 
     // anim filters
-    if (FUCK::BeginTable("filtertab", 4))
+    if (FUCK::BeginTable("filtertab", 4, FUCK::TableFlags::kSizingStretchProp))
     {
         FUCK::TableSetupColumn("filter", FUCK::TableColumnFlags::kWidthStretch, 0.5f);
         FUCK::TableSetupColumn("1", FUCK::TableColumnFlags::kWidthStretch, 0.5f / 3);
@@ -613,7 +613,7 @@ void drawAnimationMenu()
 
     // list of anims
     const auto table_flags =
-        FUCK::TableFlags::kBorders | FUCK::TableFlags::kScrollY;
+        FUCK::TableFlags::kBorders | FUCK::TableFlags::kScrollY | FUCK::TableFlags::kSizingStretchProp;
     if (FUCK::BeginTable("Animation Entries", 2, table_flags, {0.f, -FLT_MIN}))
     {
         FUCK::TableSetupColumn("Editor ID", FUCK::TableColumnFlags::kWidthStretch, 0.4f);
